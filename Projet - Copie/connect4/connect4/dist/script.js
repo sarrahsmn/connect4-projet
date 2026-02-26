@@ -1169,7 +1169,7 @@ async function robotDb(){
 
   try{
 
-    const url = `http://localhost:3001/ai/db?seq=${encodeURIComponent(seqStr)}&width=${L()}&height=${H()}&playable=${playable.join(',')}`;
+    const url = `https://connect4-projet.onrender.com/ai/db?seq=${encodeURIComponent(seqStr)}&width=${L()}&height=${H()}&playable=${playable.join(',')}`;
 
     const res = await fetch(url);
 
@@ -1251,7 +1251,7 @@ async function analyserDBSansJouer() {
 
     // 3) Appel API DB
 
-    const url = `http://localhost:3001/ai/db?seq=${encodeURIComponent(seqStr)}&width=${L()}&height=${H()}&playable=${playable.join(',')}`;
+    const url = `https://connect4-projet.onrender.com/ai/db?seq=${encodeURIComponent(seqStr)}&width=${L()}&height=${H()}&playable=${playable.join(',')}`;
 
     const res = await fetch(url);
 
@@ -1475,7 +1475,7 @@ function sortirReplay() {
 
 /* ===================== API ===================== */
 
-const API = "http://localhost:3001";
+const API = "https://connect4-projet.onrender.com";
 
 
 
@@ -1571,7 +1571,7 @@ async function refreshGamesList() {
 
   } catch (e) {
 
-    list.innerHTML = `<div style="color:#111">API indisponible (serveur localhost:3001 ?)</div>`;
+    list.innerHTML = `<div style="color:#111">API indisponible (serveur https://connect4-projet.onrender.com ?)</div>`;
 
     return;
 
