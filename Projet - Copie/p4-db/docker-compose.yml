@@ -1,0 +1,31 @@
+version: "3.9"
+
+
+
+services:
+
+  db:
+
+    image: postgres:16
+
+    container_name: p4_db
+
+    environment:
+
+      POSTGRES_USER: p4user
+
+      POSTGRES_PASSWORD: p4pass
+
+      POSTGRES_DB: p4
+
+    ports:
+
+      - "5432:5432"
+
+    volumes:
+
+      - ./pgdata:/var/lib/postgresql/data
+
+    restart: unless-stopped
+
+

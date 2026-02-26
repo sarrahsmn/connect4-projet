@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <title>connect4</title>
+
+  <link rel="stylesheet" href="./style.css">
+
+</head>
+
+
+
+<body>
+
+<div class="wrap">
+
+
+
+  <h1>Puissance 4</h1>
+
+
+
+  <div id="deroulement" class="status">—</div>
+
+
+
+  <div class="toolbar">
+
+
+
+    <!-- Mode -->
+
+    <div class="group">
+
+      <label for="mode">Mode :</label>
+
+      <select id="mode">
+
+        <option value="2">2 joueurs</option>
+
+        <option value="1">1 joueur</option>
+
+        <option value="0">0 joueur</option>
+
+      </select>
+
+    </div>
+
+
+
+    <!-- IA -->
+
+    <div class="group">
+
+      <label for="iaMode">IA :</label>
+
+      <select id="iaMode">
+
+        <option value="db">Base de données</option>
+
+        <option value="aleatoire">Aléatoire</option>
+
+        <option value="minimax">Minimax</option>
+
+      </select>
+
+
+
+      <label for="depth">Profondeur :</label>
+
+      <input id="depth" type="number" min="1" max="8" value="4" />
+
+    </div>
+
+
+
+    <!-- Boutons généraux -->
+
+    <div class="group">
+
+      <button id="Puissance4">Recommencer</button>
+
+      <button id="stop">Arrêter</button>
+
+    </div>
+
+
+
+    <!-- Undo / Save / Load -->
+
+    <div class="group">
+
+      <button id="undo">Annuler</button>
+
+      <button id="save">Sauvegarder</button>
+
+      <button id="load">Reprendre</button>
+
+      <button id="params">Paramètres</button>
+
+    </div>
+
+
+
+    <!-- Replay / Analyse -->
+
+    <div class="group">
+
+      <button id="prev">-</button>
+
+      <button id="next">+</button>
+
+
+
+      <!-- BOUTON ANALYSE IA (DB) UNIQUE -->
+
+      <button id="analyseNow" class="btn">Analyse IA</button>
+
+
+
+      <button id="exitReplay">Quitter navigation</button>
+
+    </div>
+
+
+
+  </div>
+
+
+
+  <!-- Section gestion des parties -->
+
+  <div class="toolbar" style="margin-top:20px;">
+
+    <h2>Gestion des parties</h2>
+
+
+
+    <form id="importForm">
+
+      <label>Importer une partie :</label>
+
+      <input type="file" id="fileInput" accept=".txt">
+
+
+
+      <label>Largeur :</label>
+
+      <input type="number" id="importWidth" value="9" min="4">
+
+
+
+      <label>Hauteur :</label>
+
+      <input type="number" id="importHeight" value="9" min="4">
+
+
+
+      <label>Commence :</label>
+
+      <select id="importStarts">
+
+        <option value="rouge">Rouge</option>
+
+        <option value="jaune">Jaune</option>
+
+      </select>
+
+
+
+      <button type="submit">Importer</button>
+
+    </form>
+
+
+
+    <button id="refreshGames">Rafraîchir</button>
+
+
+
+    <div id="gamesList" style="margin-top:20px;"></div>
+
+  </div>
+
+
+
+  <!-- Plateau -->
+
+  <div id="tableau" class="board"></div>
+
+
+
+  <!-- Barre des scores -->
+
+  <div id="scores" class="scores"></div>
+
+
+
+</div>
+
+
+
+<script src="./script.js"></script>
+
+</body>
+
+</html>

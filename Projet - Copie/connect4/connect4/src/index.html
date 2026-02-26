@@ -1,0 +1,52 @@
+<div class="wrap">
+  <h1>Puissance 4</h1>
+
+  <div id="deroulement" class="status">—</div>
+
+  <div class="toolbar">
+    <!-- Groupe Mode -->
+    <div class="group">
+      <label for="mode">Mode :</label>
+      <select id="mode">
+        <option value="2">2 joueurs</option>
+        <option value="1">1 joueur</option>
+        <option value="0">0 joueur</option>
+      </select>
+    </div>
+
+    <!-- Groupe IA -->
+    <div class="group">
+      <label for="iaMode">IA :</label>
+      <select id="iaMode">
+        <option value="aleatoire">Aléatoire</option>
+        <option value="minimax">Minimax</option>
+      </select>
+
+      <label for="depth">Profondeur :</label>
+      <input id="depth" type="number" min="1" max="8" value="4" />
+    </div>
+
+    <div class="group">
+      <button id="Puissance4">Recommencer</button>
+      <button id="stop">Arrêter</button>
+    </div>
+
+    <div class="group">
+      <button id="undo">Annuler</button>
+      <button id="save">Sauvegarder</button>
+      <button id="load">Reprendre</button>
+      <button id="params">Paramètres</button>
+    </div>
+
+    <div class="group">
+      <button id="prev">-</button>
+      <button id="next"> +</button>
+      <button id="exitReplay">Quitter navigation</button>
+    </div>
+  </div>
+
+  <div id="tableau" class="board"></div>
+
+  <!-- Barre des scores à l'intérieur de .wrap -->
+  <div id="scores" class="scores"></div>
+</div>
