@@ -134,9 +134,20 @@ function MAJ(){
 function initScores(){
   const S = document.getElementById("scores");
   if (!S) return;
+
   S.innerHTML = "";
-  S.style.setProperty("--cols", L());
-  for (let c=0;c<L();c++){
+
+  // colsTotal = (colonne labels) + L()
+  S.style.setProperty("--colsTotal", L() + 1);
+
+  // spacer (colonne des labels à gauche)
+  const spacer = document.createElement("div");
+  spacer.className = "scorecell spacer";
+  spacer.textContent = "";
+  S.appendChild(spacer);
+
+  // puis les scores des colonnes jouables
+  for (let c = 0; c < L(); c++){
     const d = document.createElement("div");
     d.className = "scorecell invalide";
     d.textContent = "—";
@@ -144,23 +155,31 @@ function initScores(){
     S.appendChild(d);
   }
 }
+
 function setScoreCol(col, value, valid){
   const S = document.getElementById("scores");
   if (!S) return;
-  const cell = S.children[col];
+
+  // +1 car S.children[0] = spacer
+  const cell = S.children[col + 1];
   if (!cell) return;
+
   cell.textContent = (value === null || value === undefined) ? "—" : String(value);
   cell.classList.toggle("invalide", !valid);
 }
+
 function clearBestScores(){
   const S = document.getElementById("scores");
   if (!S) return;
   [...S.children].forEach(c => c.classList.remove("best"));
 }
+
 function markBestScore(col){
   const S = document.getElementById("scores");
   if (!S) return;
-  const cell = S.children[col];
+
+  // +1 car spacer
+  const cell = S.children[col + 1];
   if (cell) cell.classList.add("best");
 }
 
