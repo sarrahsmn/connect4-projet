@@ -20,123 +20,131 @@
       </div>
     </header>
 
-    <!-- Statut sticky (mobile friendly) -->
-    <div class="statusbar">
-      <div id="deroulement" class="status">—</div>
-      <div class="status-mini" id="lastMoveMini">—</div>
+    <div class="layout">
+      <!-- ===== COLONNE GAUCHE : NAV / IMPORT / LISTE ===== -->
+      <aside class="sidebar">
+        <!-- Commandes jeu -->
+        <section class="toolbar">
+          <div class="group">
+            <label for="mode">Mode :</label>
+            <select id="mode">
+              <option value="2">Humain vs Humain</option>
+              <option value="1">Humain vs IA</option>
+              <option value="0">IA vs IA</option>
+            </select>
+
+            <label for="humanColor">Humain :</label>
+            <select id="humanColor">
+              <option value="rouge">Rouge (1er)</option>
+              <option value="jaune">Jaune (2e)</option>
+            </select>
+          </div>
+
+          <div class="group">
+            <label for="iaMode">IA :</label>
+            <select id="iaMode">
+              <option value="db">Base de données</option>
+              <option value="aleatoire">Aléatoire</option>
+              <option value="minimax">Minimax</option>
+            </select>
+
+            <label for="depth">Profondeur :</label>
+            <input id="depth" type="number" min="1" max="8" value="4" />
+          </div>
+
+          <div class="group">
+            <button id="undo" class="btn">Annuler</button>
+            <button id="save" class="btn">Sauvegarder</button>
+            <button id="load" class="btn">Reprendre</button>
+            <button id="params" class="btn btn-outline">Paramètres</button>
+          </div>
+
+          <div class="group">
+            <button id="analyseNow" class="btn">IA suggère</button>
+            <button id="aiPlayOnce" class="btn btn-ghost">IA jouerait</button>
+
+            <button id="prev" class="btn btn-ghost">-</button>
+            <button id="next" class="btn btn-ghost">+</button>
+            <button id="exitReplay" class="btn btn-outline">Quitter navigation</button>
+          </div>
+        </section>
+
+        <!-- Scrapping / Import -->
+        <section class="toolbar">
+          <h2>Scrapping / Import</h2>
+
+          <div class="group">
+            <label for="bgaId">Numéro de partie BGA :</label>
+            <input id="bgaId" type="number" min="1" placeholder="ex: 123456789" />
+            <button id="loadBga" class="btn">Afficher la partie</button>
+            <span class="hint"></span>
+          </div>
+
+          <form id="importForm" class="group">
+            <label>Importer un fichier :</label>
+            <input type="file" id="fileInput" accept=".txt" />
+
+            <label>Largeur :</label>
+            <input type="number" id="importWidth" value="9" min="4" />
+
+            <label>Hauteur :</label>
+            <input type="number" id="importHeight" value="9" min="4" />
+
+            <label>Commence :</label>
+            <select id="importStarts">
+              <option value="rouge">Rouge</option>
+              <option value="jaune">Jaune</option>
+            </select>
+
+            <button type="submit" class="btn">Importer</button>
+            <button type="button" id="refreshGames" class="btn btn-outline">Rafraîchir</button>
+          </form>
+
+          <!-- Liste DB scrollable -->
+          <div class="gamesListWrap">
+            <div id="gamesList" class="gamesList"></div>
+          </div>
+        </section>
+      </aside>
+
+      <!-- ===== COLONNE DROITE : STATUS + PLATEAU + PEINTURE ===== -->
+      <main class="main">
+        <!-- Statut sticky (dans la colonne droite) -->
+        <div class="statusbar">
+          <div id="deroulement" class="status">—</div>
+          <div class="status-mini" id="lastMoveMini">—</div>
+        </div>
+
+        <!-- Plateau + scores (alignés) -->
+        <section class="boardArea">
+          <div class="boardWrap">
+            <div id="tableau" class="board"></div>
+          </div>
+
+          <div id="scores" class="scores"></div>
+        </section>
+
+        <!-- Mode peinture -->
+        <section class="toolbar paint">
+          <div class="paint-head">
+            <h2>Mode peinture</h2>
+            <label class="switch">
+              <input type="checkbox" id="paintToggle" />
+              <span>Activer</span>
+            </label>
+          </div>
+
+          <div class="group paint-tools">
+            <button class="btn brush" data-brush="rouge">Rouge</button>
+            <button class="btn brush" data-brush="jaune">Jaune</button>
+            <button class="btn brush btn-outline" data-brush="erase">Effacer</button>
+            <button id="clearBoard" class="btn btn-ghost">Vider</button>
+          </div>
+
+          <p class="hint"></p>
+        </section>
+      </main>
     </div>
-
-    <!-- Commandes jeu -->
-    <section class="toolbar">
-      <div class="group">
-        <label for="mode">Mode :</label>
-        <select id="mode">
-          <option value="2">Humain vs Humain</option>
-          <option value="1">Humain vs IA</option>
-          <option value="0">IA vs IA</option>
-        </select>
-
-        <label for="humanColor">Humain :</label>
-        <select id="humanColor">
-          <option value="rouge">Rouge (1er)</option>
-          <option value="jaune">Jaune (2e)</option>
-        </select>
-      </div>
-
-      <div class="group">
-        <label for="iaMode">IA :</label>
-        <select id="iaMode">
-          <option value="db">Base de données</option>
-          <option value="aleatoire">Aléatoire</option>
-          <option value="minimax">Minimax</option>
-        </select>
-
-        <label for="depth">Profondeur :</label>
-        <input id="depth" type="number" min="1" max="8" value="4" />
-      </div>
-
-      <div class="group">
-        <button id="undo" class="btn">Annuler</button>
-        <button id="save" class="btn">Sauvegarder</button>
-        <button id="load" class="btn">Reprendre</button>
-        <button id="params" class="btn btn-outline">Paramètres</button>
-      </div>
-
-      <div class="group">
-        <button id="analyseNow" class="btn">IA suggère</button>
-        <button id="aiPlayOnce" class="btn btn-ghost">IA jouerait</button>
-
-        <button id="prev" class="btn btn-ghost">-</button>
-        <button id="next" class="btn btn-ghost">+</button>
-        <button id="exitReplay" class="btn btn-outline">Quitter navigation</button>
-      </div>
-    </section>
-
-    <!-- Mission 4.1 : charger une partie BGA -->
-    <section class="toolbar">
-      <h2>Scrapping / Import</h2>
-
-      <div class="group">
-        <label for="bgaId">Numéro de partie BGA :</label>
-        <input id="bgaId" type="number" min="1" placeholder="ex: 123456789" />
-        <button id="loadBga" class="btn">Afficher la partie</button>
-        <span class="hint"></span>
-      </div>
-
-      <form id="importForm" class="group">
-        <label>Importer un fichier :</label>
-        <input type="file" id="fileInput" accept=".txt" />
-
-        <label>Largeur :</label>
-        <input type="number" id="importWidth" value="9" min="4" />
-
-        <label>Hauteur :</label>
-        <input type="number" id="importHeight" value="9" min="4" />
-
-        <label>Commence :</label>
-        <select id="importStarts">
-          <option value="rouge">Rouge</option>
-          <option value="jaune">Jaune</option>
-        </select>
-
-        <button type="submit" class="btn">Importer</button>
-        <button type="button" id="refreshGames" class="btn btn-outline">Rafraîchir</button>
-      </form>
-
-      <div id="gamesList" class="gamesList"></div>
-    </section>
-
-    <!-- Mission peinture -->
-    <section class="toolbar paint">
-      <div class="paint-head">
-        <h2>Mode peinture</h2>
-        <label class="switch">
-          <input type="checkbox" id="paintToggle" />
-          <span>Activer</span>
-        </label>
-      </div>
-
-      <div class="group paint-tools">
-        <button class="btn brush" data-brush="rouge">Rouge</button>
-        <button class="btn brush" data-brush="jaune">Jaune</button>
-        <button class="btn brush btn-outline" data-brush="erase">Effacer</button>
-
-        <button id="clearBoard" class="btn btn-ghost">Vider</button>
-        </button>
-      </div>
-
-      <p class="hint">
-       
-      </p>
-    </section>
-
-    <!-- Plateau -->
-    <div class="boardWrap">
-      <div id="tableau" class="board"></div>
-    </div>
-
-    <!-- Barre des scores -->
-    <div id="scores" class="scores"></div>
   </div>
 
   <script src="./script.js"></script>
