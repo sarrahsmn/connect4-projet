@@ -502,6 +502,7 @@ function robotMinimax(jouerVraiment=true){
 
 const API = "https://connect4-projet.onrender.com";
 
+
 async function robotDb(){
   if (fin || enPause || enReplay) return;
 
@@ -551,15 +552,45 @@ function robotJoue(){
 
 /* ===================== IA SUGGÈRE (sans jouer) ===================== */
 async function analyserSansJouer(){
+
   if (fin || enPause || enReplay) return;
 
-  // si peinture => Minimax (car DB dépend séquence)
-  if (paint.enabled || IA.type === "minimax" || IA.type === "aleatoire"){
-    robotMinimax(false);
-    return;
-  }
 
-  // IA DB mais sans jouer : on appelle DB et on n'applique pas le coup
+
+ if (paint.enabled || IA.type === "minimax" || IA.type === "aleatoire"){
+
+  robotMinimax(false);
+
+   return;
+
+}
+
+
+
+ if (IA.type === "minimax") return robotMinimax(false);
+
+ if (IA.type === "aleatoire") {
+
+   const jouables=[]; for(let c=0;c<L();c++) if (caseDispo(c)!==-1) jouables.push(c);
+
+   clearBestScores(); for(let c=0;c<L();c++) setScoreCol(c, null, false);
+
+   if (jouables.length){
+
+     const col = jouables[(Math.random()*jouables.length)|0];
+
+     markBestScore(col);
+
+     statut.textContent = `Aléatoire (suggéré) : colonne ${col+1}`;
+
+   }
+
+  return;
+
+ }
+
+  // IA = DB : on tente, et fallback si coverage faible ou erreur
+
   try{
     const seqStr = (historique || []).map(h => h.col+1).join('');
     const playable=[];
