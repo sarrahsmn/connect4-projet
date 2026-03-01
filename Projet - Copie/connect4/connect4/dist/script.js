@@ -545,9 +545,13 @@ async function robotDb(){
 }
 
 function robotJoue(){
-  if (IA.type === "db") return robotDb();
+
+  if (IA.type === "db") return robotDb();      // tente DB même si paint
+
   if (IA.type === "minimax") return robotMinimax(true);
+
   return robotAleatoire();
+
 }
 
 /* ===================== IA SUGGÈRE (sans jouer) ===================== */
@@ -557,67 +561,92 @@ async function analyserSansJouer(){
 
 
 
- if (paint.enabled || IA.type === "minimax" || IA.type === "aleatoire"){
+  // Minimax = toujours minimax "sans jouer"
 
-  robotMinimax(false);
-
-   return;
-
-}
+  if (IA.type === "minimax") return robotMinimax(false);
 
 
 
- if (IA.type === "minimax") return robotMinimax(false);
+  // Aléatoire = suggérer visuellement un coup jouable
 
- if (IA.type === "aleatoire") {
+  if (IA.type === "aleatoire") {
 
-   const jouables=[]; for(let c=0;c<L();c++) if (caseDispo(c)!==-1) jouables.push(c);
+    const jouables=[]; for(let c=0;c<L();c++) if (caseDispo(c)!==-1) jouables.push(c);
 
-   clearBestScores(); for(let c=0;c<L();c++) setScoreCol(c, null, false);
+    clearBestScores(); for(let c=0;c<L();c++) setScoreCol(c, null, false);
 
-   if (jouables.length){
+    if (jouables.length){
 
-     const col = jouables[(Math.random()*jouables.length)|0];
+      const col = jouables[(Math.random()*jouables.length)|0];
 
-     markBestScore(col);
+      markBestScore(col);
 
-     statut.textContent = `Aléatoire (suggéré) : colonne ${col+1}`;
+      statut.textContent = `Aléatoire (suggéré) : colonne ${col+1}`;
 
-   }
+    }
 
-  return;
+    return;
 
- }
+  }
 
-  // IA = DB : on tente, et fallback si coverage faible ou erreur
+
+
+  // IA = DB : on tente même si paint.enabled === true
 
   try{
+
     const seqStr = (historique || []).map(h => h.col+1).join('');
+
     const playable=[];
+
     for(let c=0;c<L();c++) playable.push(caseDispo(c)!==-1 ? 1 : 0);
 
+
+
     const url = `${API}/ai/db?seq=${encodeURIComponent(seqStr)}&width=${L()}&height=${H()}&playable=${playable.join(',')}`;
+
     const res = await fetch(url);
+
     const data = await res.json();
 
+
+
     clearBestScores();
+
     if (Array.isArray(data.scores) && data.scores.length===L()){
+
       for(let c=0;c<L();c++) setScoreCol(c, data.scores[c], true);
+
     } else {
+
       for(let c=0;c<L();c++) setScoreCol(c, null, false);
+
     }
 
+
+
     if (typeof data.best === "number"){
+
       markBestScore(data.best);
+
       statut.textContent = `DB : meilleur coup = colonne ${data.best+1} (coverage=${data.coverage ?? 0})`;
+
     } else {
-      statut.textContent = `DB : pas assez de données (coverage=${data.coverage ?? 0}).`;
+
+      statut.textContent = `DB : pas assez de données (coverage=${data.coverage ?? 0})`;
+
     }
+
   } catch(e){
+
     console.error("analyse db error:", e);
+
     statut.textContent = "Analyse DB : erreur → Minimax";
+
     robotMinimax(false);
+
   }
+
 }
 
 /* ===================== UNDO / SAVE / LOAD ===================== */
