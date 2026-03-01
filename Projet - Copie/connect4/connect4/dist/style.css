@@ -1,592 +1,273 @@
-
-/* *{
-  box-sizing: border-box;
-  font-family: Arial, sans-serif;
-  font-weight: normal;
-}
-
-.header { background: #333; color: white; font-weight: bold; }
-.label {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-weight: bold;
-  color: white;
-  font-size: 14px;
+/* ===================== RESET / BASE ===================== */
+*{
+  box-sizing:border-box;
+  font-family: Arial, Helvetica, sans-serif;
+  margin:0;
+  padding:0;
 }
 
 :root{
-  --rose: pink;
-  --violet: #9400D3;
-  --noir: #111;
-  --noir2: #222;
-  --plateau: #140822;
-  --blanc: #fff;
+  --violet:#6a2a9e;
+  --fond:#f3d8ff;
+  --noir:#111;
+  --noir2:#222;
+  --blanc:#fff;
+
+  --rouge:#e53935;
+  --jaune:#fdd835;
+
+  --cardBorder: 4px solid #000;
+  --radius: 12px;
 }
 
-
+/* ===================== LAYOUT ===================== */
 body{
-  margin: 0;
-  padding: 0;
-  background: var(--rose);
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
+  background:var(--fond);
+  min-height:100vh;
+  display:grid;
+  place-items:center;
+  color:#000;
 }
-
 
 .wrap{
-  width: min(900px, 95vw);
-  display: grid;
-  gap: 12px;
-  padding: 16px;
+  width:min(980px, 95vw);
+  display:grid;
+  gap:14px;
+  padding:16px;
+}
+
+.top{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
 }
 
 h1{
-  margin: 0;
-  text-align: center;
-  color: #000;
-  font-size: 34px;
+  font-size:32px;
+  letter-spacing:0.2px;
 }
 
+.subtitle{
+  margin-top:4px;
+  font-weight:bold;
+  color:#2b1240;
+  opacity:0.9;
+}
+
+.top-actions{
+  display:flex;
+  gap:10px;
+}
+
+/* ===================== STATUT (mobile friendly) ===================== */
+.statusbar{
+  position: sticky;
+  top: 10px;
+  z-index: 10;
+  display:grid;
+  gap:8px;
+}
 
 .status{
-  background: var(--violet);
-  color: var(--blanc);
-  border: 5px solid #000;
+  background:var(--violet);
+  color:var(--blanc);
+  border:var(--cardBorder);
+  border-radius:var(--radius);
+  padding:12px 14px;
+  font-weight:bold;
+}
+
+.status-mini{
+  background: rgba(0,0,0,0.08);
+  border: 3px solid #000;
   border-radius: 12px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   font-weight: bold;
 }
 
-
-
+/* ===================== TOOLBARS ===================== */
 .toolbar{
-  background: var(--violet);
-  border: 5px solid #000;
-  border-radius: 12px;
-  padding: 12px;
-  display: grid;
-  gap: 10px;
+  background:var(--violet);
+  border:var(--cardBorder);
+  border-radius:var(--radius);
+  padding:12px;
+  display:grid;
+  gap:10px;
+}
+
+h2{
+  color:#000;
+  font-size:20px;
+  margin:4px 0 6px;
 }
 
 .group{
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
 }
-
 
 .group label{
-  color: var(--blanc);
-  font-weight: bold;
+  color:var(--blanc);
+  font-weight:bold;
 }
 
-
-select, button{
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 2px solid var(--noir2);
-  background: var(--noir);
-  color: var(--blanc);
-  font-size: 16px;
-  cursor: pointer;
-  outline: none;
+select, input[type="number"], input[type="file"], button{
+  padding:10px 12px;
+  border-radius:10px;
+  border:2px solid var(--noir2);
+  background:var(--noir);
+  color:var(--blanc);
+  font-size:16px;
+  outline:none;
 }
 
-button:hover, select:hover{
-  background: #222;
+input[type="file"]{ background:#1a1a1a; }
+input[type="number"]{ width: 160px; }
+button{ cursor:pointer; }
+button:hover, select:hover{ background:#1a1a1a; }
+
+.btn{ }
+.btn-outline{
+  background: transparent;
+  border: 2px solid #fff;
+}
+.btn-outline:hover{
+  background: rgba(0,0,0,0.25);
+}
+.btn-ghost{
+  background: rgba(0,0,0,0.35);
+}
+.btn-ghost:hover{
+  background: rgba(0,0,0,0.5);
 }
 
+.hint{
+  color:#fff;
+  opacity:0.9;
+  font-size: 13px;
+}
+
+/* ===================== PAINT ===================== */
+.paint-head{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+.switch{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#fff;
+  font-weight:bold;
+}
+
+.paint-tools .brush.active{
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+.gamesList{
+  display:grid;
+  gap:10px;
+  margin-top: 10px;
+}
+
+/* ===================== PLATEAU ===================== */
+.boardWrap{
+  display:grid;
+  place-items:center;
+}
 
 .board{
-  
-  --cols: 9;
-  --rows: 8;
+  --cols: 10;
+  --rows: 10;
 
-  width: min(520px, 92vw);
+  width: min(560px, 92vw);
   aspect-ratio: var(--cols) / var(--rows);
 
-  display: grid;
+  display:grid;
   grid-template-columns: repeat(var(--cols), 1fr);
   grid-template-rows: repeat(var(--rows), 1fr);
-  gap: 10px;
+  gap:10px;
 
-  padding: 14px;
-  border-radius: 14px;
-  border: 5px solid #000;
-  background: rgba(255,255,255,0.10);
+  padding:14px;
+  border-radius:14px;
+  border:5px solid #000;
+  background: rgba(0,0,0,0.08);
 }
 
+.label{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#222;
+  font-weight:bold;
+  font-size:14px;
+}
 
 .Case{
-  border-radius: 999px;
-  background: #0b0b11;
-  border: 2px solid var(--noir2);
-  cursor: pointer;
-  transition: transform 0.12s ease;
+  border-radius:999px;
+  background:#0b0b11;
+  border:2px solid var(--noir2);
+  cursor:pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
-.Case:hover{
-  transform: scale(1.04);
-}
+.Case:hover{ transform: scale(1.04); }
+.Case.rouge{ background: var(--rouge); }
+.Case.jaune{ background: var(--jaune); }
 
-
-.Case.rouge{ background: #e53935; }
-.Case.jaune{ background: #fdd835; }
-
-/* Victoire 
 .Case.win{
-  outline: 4px solid white;
-  box-shadow: 0 0 15px white;
+  outline:4px solid #fff;
+  box-shadow:0 0 14px #fff;
 }
+
+/* petit feedback en mode peinture */
+.Case.paint-hover{
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.8) inset;
+}
+
+/* ===================== SCORES ===================== */
 .scores{
-  width: min(520px, 92vw);
-  display: grid;
-  grid-template-columns: repeat(var(--cols), 1fr);
-  gap: 10px;
+  width: min(560px, 92vw);
+  display:grid;
+  grid-template-columns: repeat(var(--cols, 9), 1fr);
+  gap:10px;
   padding: 0 14px;
 }
 
 .scorecell{
-  height: 36px;
-  border-radius: 10px;
-  border: 2px solid var(--noir2);
-  background: #1a1a22;
-  color: var(--blanc);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 14px;
-  opacity: 0.9;
+  height:36px;
+  border-radius:10px;
+  border:2px solid var(--noir2);
+  background:#1a1a22;
+  color:var(--blanc);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+  font-size:14px;
+  opacity:0.92;
 }
 
-.scorecell.invalide{
-  opacity: 0.35;
-}
-
-/* --- BARRE DES SCORES (analyse IA) --- 
-
-#scores {
-
-  margin-top: 10px;
-
-  display: grid;
-
-  gap: 2px;
-
-}
-
-
-
-#scores .scorecell {
-
-  padding: 4px;
-
-  text-align: center;
-
-  background: #222;
-
-  color: white;
-
-  border-radius: 4px;
-
-  font-size: 12px;
-
-}
-
-
-
-#scores .scorecell.invalide {
-
-  opacity: 0.4;
-
-}
-
-
-
-#scores .scorecell.best {
-
-  outline: 2px solid #00d2ff;
-
-  outline-offset: -2px;
-
-  background: rgba(0, 210, 255, 0.2);
-}
- */ 
-
- /* ===================== RESET / BASE ===================== */
-
-* {
-
-  box-sizing: border-box;
-
-  font-family: Arial, Helvetica, sans-serif;
-
-  font-weight: normal;
-
-  margin: 0;
-
-  padding: 0;
-
-}
-
-
-
-:root {
-
-  --violet: #6a2a9e;
-
-  --noir: #111;
-
-  --noir2: #222;
-
-  --blanc: #fff;
-
-  --fond: #f3d8ff; /* fond clair */
-
-}
-
-
-
-/* ===================== LAYOUT ===================== */
-
-body {
-
-  background: var(--fond);
-
-  min-height: 100vh;
-
-  display: grid;
-
-  place-items: center;
-
-  color: #000;
-
-}
-
-
-
-.wrap {
-
-  width: min(980px, 95vw);
-
-  display: grid;
-
-  gap: 14px;
-
-  padding: 16px;
-
-}
-
-
-
-/* ===================== TITRE / STATUT ===================== */
-
-h1 {
-
-  text-align: center;
-
-  font-size: 32px;
-
-  letter-spacing: 0.2px;
-
-  margin-bottom: 2px;
-
-}
-
-
-
-.status {
-
-  background: var(--violet);
-
-  color: var(--blanc);
-
-  border: 4px solid #000;
-
-  border-radius: 12px;
-
-  padding: 12px 14px;
-
-  font-weight: bold;
-
-}
-
-
-
-/* ===================== TOOLBARS ===================== */
-
-.toolbar {
-
-  background: var(--violet);
-
-  border: 4px solid #000;
-
-  border-radius: 12px;
-
-  padding: 12px;
-
-  display: grid;
-
-  gap: 10px;
-
-}
-
-
-
-.group {
-
-  display: flex;
-
-  flex-wrap: wrap;
-
-  gap: 10px;
-
-  align-items: center;
-
-}
-
-
-
-.group label {
-
-  color: var(--blanc);
-
-  font-weight: bold;
-
-}
-
-
-
-select, button, input[type="number"], input[type="file"] {
-
-  padding: 10px 12px;
-
-  border-radius: 10px;
-
-  border: 2px solid var(--noir2);
-
-  background: var(--noir);
-
-  color: var(--blanc);
-
-  font-size: 16px;
-
-  outline: none;
-
-  cursor: pointer;
-
-}
-
-
-
-input[type="number"], input[type="file"] {
-
-  cursor: initial;
-
-}
-
-
-
-button:hover, select:hover {
-
-  background: #1a1a1a;
-
-}
-
-
-
-/* ===================== PLATEAU ===================== */
-
-/* Le JS pose --cols = L()+1 et --rows = H()+1 */
-
-.board {
-
-  --cols: 10; /* valeurs par défaut (écrasées par JS) */
-
-  --rows: 10;
-
-
-
-  width: min(560px, 92vw);
-
-  aspect-ratio: var(--cols) / var(--rows);
-
-
-
-  display: grid;
-
-  grid-template-columns: repeat(var(--cols), 1fr);
-
-  grid-template-rows: repeat(var(--rows), 1fr);
-
-  gap: 10px;
-
-
-
-  padding: 14px;
-
-  border-radius: 14px;
-
-  border: 5px solid #000;
-
-  background: rgba(0,0,0,0.08);
-
-}
-
-
-
-/* Labels (entêtes et index de lignes) */
-
-.label {
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  color: #222;
-
-  font-weight: bold;
-
-  font-size: 14px;
-
-}
-
-
-
-/* Case (pion) */
-
-.Case {
-
-  border-radius: 999px;
-
-  background: #0b0b11;       /* vide */
-
-  border: 2px solid var(--noir2);
-
-  cursor: pointer;
-
-  transition: transform 0.12s ease;
-
-}
-
-
-
-.Case:hover { transform: scale(1.04); }
-
-.Case.rouge { background: #e53935; }
-
-.Case.jaune { background: #fdd835; }
-
-
-
-.Case.win {
-
-  outline: 4px solid #fff;
-
-  box-shadow: 0 0 14px #fff;
-
-}
-
-
-
-/* ===================== BARRE DES SCORES ===================== */
-
-/* Le JS pose --cols = L() (sans la colonne des labels) */
-
-.scores {
-
-  width: min(560px, 92vw);
-
-  display: grid;
-
-  grid-template-columns: repeat(var(--cols, 9), 1fr);
-
-  gap: 10px;
-
-  padding: 0 14px;
-
-}
-
-
-
-.scorecell {
-
-  height: 36px;
-
-  border-radius: 10px;
-
-  border: 2px solid var(--noir2);
-
-  background: #1a1a22;
-
-  color: var(--blanc);
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  font-weight: bold;
-
-  font-size: 14px;
-
-  opacity: 0.92;
-
-}
-
-
-
-.scorecell.invalide { opacity: 0.35; }
-
-
-
-/* cellule marquée "best" si tu veux surligner (optionnel) */
-
-.scorecell.best {
-
-  outline: 2px solid #00d2ff;
-
-  outline-offset: -2px;
-
+.scorecell.invalide{ opacity:0.35; }
+.scorecell.best{
+  outline:2px solid #00d2ff;
+  outline-offset:-2px;
   background: rgba(0, 210, 255, 0.15);
-
 }
 
-
-
-/* ===================== IMPORT ===================== */
-
-h2 {
-
-  margin: 4px 0 6px;
-
-  color: #000;
-
-  font-size: 20px;
-
-}
-
-
-
-#gamesList button {
-
-  background: #232323;
-
-  border-color: #444;
-
-}
-
-
-
-#gamesList button:hover {
-
-  background: #2d2d2d;
-
+/* ===================== MOBILE ===================== */
+@media (max-width: 520px){
+  h1{ font-size: 26px; }
+  input[type="number"]{ width: 140px; }
+  .board{ gap: 8px; padding: 12px; }
+  .scores{ gap: 8px; }
 }
