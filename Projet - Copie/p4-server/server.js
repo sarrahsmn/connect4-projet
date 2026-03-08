@@ -385,9 +385,80 @@ app.get('/games/:id/mirror', async (req, res) => {
 // I) MONTER LE ROUTEUR IA DB ICI (très important)
 
 app.use(aiRouter);
+// I bis) Import BGA automatique (appelé par le scraper)
+app.post('/import-bga-auto', async (req, res) => {
+try {
+const { moves, width, height, starts_with, source, confiance } = req.body;
 
+// 1) Validations minimales
+if (!Array.isArray(moves) || moves.length === 0) {
+return res.status(400).json({ error: 'moves manquant ou vide' });
+}
+const L = Number(width) || 9;
+const H = Number(height) || 9;
+const starts = (starts_with === 'jaune') ? 'jaune' : 'rouge';
+
+// 2) Reconstruire le plateau exactement comme /import-file
+const board = buildEmptyBoard(H, L);
+let token = (starts === 'rouge') ? 'R' : 'Y';
+const seqArr = moves.map(n => Number(n)); // [1..L]
+const seqStr = seqArr.join('');
+
+// option : si tu veux bloquer les colonnes hors borne
+// if (!validateSeq(seqArr, L)) return res.status(400).json({ error: 'Séquence invalide' });
+
+for (const c1 of seqArr) {
+const col0 = c1 - 1; // 0..L-1
+drop(board, col0, token);
+token = (token === 'R') ? 'Y' : 'R';
+}
+
+// 3) Canonicalisation & hashes (mêmes helpers que ton code)
+const { canonical_seq, was_mirrored } = canonicalizeSeq(seqStr, L);
+const canonical_hash = sha256Hex(canonical_seq);
+const final_pos_hash = canonicalBoardHash(board, sha256Hex);
+const move_count = seqArr.length;
+const nb_cols = countPlayableColumns(board);
+
+// 4) INSERT avec dédup sur final_pos_hash
+const q = `
+INSERT INTO games (
+height, width, starts_with,
+seq_str, seq, move_count, status, result,
+canonical_seq, canonical_hash, was_mirrored,
+final_pos_hash,
+nb_cols, source, confiance
+)
+VALUES ($1,$2,$3,$4,$5,$6,'in_progress','unknown',
+$7,$8,$9,
+$10,
+$11,$12,$13)
+ON CONFLICT (final_pos_hash) DO NOTHING
+RETURNING id
+`;
+const vals = [
+H, L, starts,
+seqStr, seqArr, move_count,
+canonical_seq, canonical_hash, was_mirrored,
+final_pos_hash,
+nb_cols, (source ?? 'bga'), (confiance ?? 1)
+];
+
+const r = await pool.query(q, vals);
+
+if (r.rowCount === 0) {
+return res.json({ imported: false, reason: 'duplicate_final_position', final_pos_hash });
+}
+return res.json({ imported: true, id: r.rows[0].id });
+
+} catch (e) {
+console.error('Erreur /import-bga-auto :', e);
+res.status(500).json({ error: 'Erreur serveur' });
+}
+});
 
 
 // J) Lancer serveur
 const PORT = process.env.PORT || 3001;
+
 app.listen(PORT, () => console.log(`API running on port ${PORT}`));
