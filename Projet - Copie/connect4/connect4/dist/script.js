@@ -1886,53 +1886,71 @@ async function refreshGamesList(){
 
 /* ===================== MISSION 4.1 : CHARGER BGA (hook backend) ===================== */
 
-async function loadFromBGAId(bgaId){
+/* ===================== MISSION 4.1 : CHARGER BGA (scraper local) ===================== */
 
-  if (!bgaId) return;
+const LOCAL_SCRAPER = "http://127.0.0.1:5001"; // service Python Edge (--serve)
 
-
-
-  try{
-
-    // OPTION A (à adapter)
-
-    // const r = await fetch(`${API}/bga/${bgaId}`);
-
-    // const data = await r.json();
-
-
-
-    // OPTION B (à adapter)
-
-    const r = await fetch(`${API}/import-bga?id=${encodeURIComponent(bgaId)}`);
-
-    const data = await r.json();
-
-
-
-    if (!data || !data.seq_str){
-
-      alert("Backend: je n’ai pas reçu seq_str. Adapte l’endpoint / format.");
-
-      return;
-
-    }
-
-    rejouerSequence(data.seq_str);
-
-    statut.textContent = `Partie BGA ${bgaId} chargée.`;
-
-  }catch(e){
-
-    console.error(e);
-
-    alert("Erreur chargement BGA (endpoint à vérifier côté backend).");
-
-  }
-
+async function loadFromBGAId(bgaId) {
+if (!bgaId || bgaId <= 0) {
+alert("Entre un numéro de partie BGA valide.");
+return;
 }
 
+// --- 1) Ouvrir le replay BGA (preuve “en exécution”)
+window.open(
+`https://boardgamearena.com/gamereview?table=${bgaId}&lang=fr`,
+"_blank",
+"noopener"
+);
 
+// hint / bouton
+const btn = document.getElementById("loadBga");
+const hint = document.querySelector("#bgaId")?.parentElement?.querySelector(".hint");
+if (btn) btn.disabled = true;
+if (hint) hint.textContent = "Scrapping…";
+
+try {
+// --- 2) Appeler ton micro-service Python pour scraper + importer dans Render
+const r = await fetch(`${LOCAL_SCRAPER}/import-bga-table`, {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ table: Number(bgaId) })
+});
+
+let j = null;
+try { j = await r.json(); } catch {}
+
+if (!j || !j.ok) {
+const msg = j?.error || `Erreur HTTP ${r.status}`;
+statut.textContent = `❌ Import BGA ${bgaId} : ${msg}`;
+if (hint) hint.textContent = "Échec import (voir console)";
+console.error("import-bga-table error:", j || r.status, j?.text);
+return;
+}
+
+// --- 3) Rejouer la séquence dans ton plateau
+const seqStr = (j.seq || []).join("");
+if (!seqStr) {
+statut.textContent = `⚠️ Partie ${bgaId} : aucun coup trouvé`;
+if (hint) hint.textContent = "Aucun coup détecté";
+return;
+}
+
+rejouerSequence(seqStr);
+statut.textContent = `Partie BGA ${bgaId} importée (${j.api?.imported ? "insérée" : "déjà en base"})`;
+if (hint) hint.textContent = j.api?.imported ? "Import OK" : "Déjà en base";
+
+// --- 4) Rafraîchir la liste DB
+await refreshGamesList();
+
+} catch (e) {
+console.error("fetch LOCAL_SCRAPER failed:", e);
+statut.textContent = "❌ Service scrapper injoignable (lance: py -3.10 scrape_bga.py --serve)";
+if (hint) hint.textContent = "Service local non lancé";
+} finally {
+if (btn) btn.disabled = false;
+}
+}
 
 /* ===================== MODE PEINTURE ===================== */
 
