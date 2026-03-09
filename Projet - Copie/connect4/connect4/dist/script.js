@@ -1884,9 +1884,7 @@ async function refreshGamesList(){
 
 
 
-/* ===================== MISSION 4.1 : CHARGER BGA (hook backend) ===================== */
-
-/* ===================== MISSION 4.1 : CHARGER BGA (scraper local) ===================== */
+/* ===================== MISSION 4.1 : CHARGER BGA (scraper local Edge) ===================== */
 
 const LOCAL_SCRAPER = "http://127.0.0.1:5001"; // service Python Edge (--serve)
 
@@ -1945,7 +1943,7 @@ await refreshGamesList();
 
 } catch (e) {
 console.error("fetch LOCAL_SCRAPER failed:", e);
-statut.textContent = "❌ Service scrapper injoignable (lance: py -3.10 scrape_bga.py --serve)";
+statut.textContent = "❌ Service scrapper injoignable (lance: py -3.10 scrape_bga_edge.py --serve)";
 if (hint) hint.textContent = "Service local non lancé";
 } finally {
 if (btn) btn.disabled = false;
