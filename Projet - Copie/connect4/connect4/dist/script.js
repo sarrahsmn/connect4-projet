@@ -74,6 +74,19 @@ function nouveauNumeroPartie(){
 
 }
 
+async function warmUpApi() {
+try {
+const res = await fetch(`${API}/health`, {
+cache: "no-store",
+mode: "cors"
+});
+await new Promise(r => setTimeout(r, 1200)); // petite pause Render cold-start
+return res.ok;
+} catch (_) {
+return false;
+}
+}
+
 
 
 /* ===================== ÉTAT ===================== */
@@ -1909,6 +1922,10 @@ if (hint) hint.textContent = "Scrapping…";
 
 try {
 // --- 2) Appeler ton micro-service Python pour scraper + importer dans Render
+  // Réveil Render AVANT que Python poste vers /import-bga-auto
+if (hint) hint.textContent = "Réveil serveur…";
+await warmUpApi();
+if (hint) hint.textContent = "Scrapping…";
 const r = await fetch(`${LOCAL_SCRAPER}/import-bga-table`, {
 method: "POST",
 headers: { "Content-Type": "application/json" },
