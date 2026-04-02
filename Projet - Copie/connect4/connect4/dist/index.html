@@ -14,123 +14,155 @@
         <h1>Puissance 4</h1>
         <p class="subtitle">Sarrah Osmani</p>
       </div>
+
       <div class="top-actions">
-        <button id="Puissance4" class="btn">Recommencer</button>
-        <button id="stop" class="btn btn-outline">Arrêter</button>
+        <button id="Puissance4" class="btn btn-primary">Nouvelle partie</button>
+        <button id="stop" class="btn btn-outline">Pause</button>
       </div>
     </header>
 
     <div class="layout">
-      <!-- ===== COLONNE GAUCHE : NAV / IMPORT / LISTE ===== -->
+      <!-- ===== COLONNE GAUCHE ===== -->
       <aside class="sidebar">
-        <!-- Commandes jeu -->
+
+        <!-- JOUER -->
         <section class="toolbar">
+          <h2>Jouer</h2>
+          <p class="hint">Choisissez un mode puis cliquez sur une colonne pour commencer.</p>
+
           <div class="group">
-            <label for="mode">Mode :</label>
+            <label for="mode">Mode de jeu :</label>
             <select id="mode">
               <option value="2">Humain vs Humain</option>
               <option value="1">Humain vs IA</option>
               <option value="0">IA vs IA</option>
             </select>
+          </div>
 
-            <label for="humanColor">Humain :</label>
+          <div class="group">
+            <label for="humanColor">Couleur du joueur :</label>
             <select id="humanColor">
-              <option value="rouge">Rouge (1er)</option>
-              <option value="jaune">Jaune (2e)</option>
+              <option value="rouge">Rouge (commence)</option>
+              <option value="jaune">Jaune</option>
             </select>
           </div>
 
           <div class="group">
-            <label for="iaMode">IA :</label>
+            <label for="iaMode">Type d’IA :</label>
             <select id="iaMode">
               <option value="db">Base de données</option>
               <option value="aleatoire">Aléatoire</option>
               <option value="minimax">Minimax</option>
             </select>
+          </div>
 
-            <label for="depth">Profondeur :</label>
+          <div class="group">
+            <label for="depth">Niveau / profondeur :</label>
             <input id="depth" type="number" min="1" max="8" value="4" />
-          </div>
-
-          <div class="group">
-            <button id="undo" class="btn">Annuler</button>
-            <button id="save" class="btn">Sauvegarder</button>
-            <button id="load" class="btn">Reprendre</button>
-            <button id="params" class="btn btn-outline">Paramètres</button>
-          </div>
-
-          <div class="group">
-            <button id="analyseNow" class="btn">IA suggère</button>
-            <button id="aiPlayOnce" class="btn btn-ghost">IA jouerait</button>
-
-            <button id="prev" class="btn btn-ghost">-</button>
-            <button id="next" class="btn btn-ghost">+</button>
-            <button id="exitReplay" class="btn btn-outline">Quitter navigation</button>
           </div>
         </section>
 
-        <!-- Scrapping / Import -->
+        <!-- PARTIE -->
         <section class="toolbar">
-          <h2>Scrapping / Import</h2>
+          <h2>Partie en cours</h2>
+          <p class="hint">Sauvegardez votre partie, revenez en arrière ou demandez l’aide de l’IA.</p>
 
           <div class="group">
-            <label for="bgaId">Numéro de partie BGA :</label>
-            <input id="bgaId" type="number" min="1" placeholder="ex: 123456789" />
-            <button id="loadBga" class="btn">Afficher la partie</button>
-            <span class="hint"></span>
+            <button id="undo" class="btn">Annuler le dernier coup</button>
+            <button id="save" class="btn">Sauvegarder</button>
+            <button id="load" class="btn">Charger la sauvegarde</button>
+            <button id="params" class="btn btn-outline">Taille du plateau</button>
           </div>
 
-          <form id="importForm" class="group">
-            <label>Importer un fichier :</label>
-            <input type="file" id="fileInput" accept=".txt" />
+          <div class="group">
+            <button id="analyseNow" class="btn">Me conseiller un coup</button>
+            <button id="aiPlayOnce" class="btn btn-ghost">Voir le coup de l’IA</button>
+          </div>
 
-            <label>Largeur :</label>
-            <input type="number" id="importWidth" value="9" min="4" />
+          <div class="group replay-group">
+            <button id="prev" class="btn btn-ghost">Coup précédent</button>
+            <button id="next" class="btn btn-ghost">Coup suivant</button>
+            <button id="exitReplay" class="btn btn-outline">Quitter le replay</button>
+          </div>
+        </section>
 
-            <label>Hauteur :</label>
-            <input type="number" id="importHeight" value="9" min="4" />
+        <!-- OUTILS AVANCÉS -->
+        <section class="toolbar advanced">
+          <h2>Outils avancés</h2>
+          <p class="hint">Chargez une partie existante depuis BGA, un fichier texte ou la base enregistrée.</p>
 
-            <label>Commence :</label>
-            <select id="importStarts">
-              <option value="rouge">Rouge</option>
-              <option value="jaune">Jaune</option>
-            </select>
+          <div class="subcard">
+            <h3>Charger une partie BGA</h3>
+            <div class="group">
+              <label for="bgaId">Numéro de partie :</label>
+              <input id="bgaId" type="number" min="1" placeholder="ex : 123456789" />
+              <button id="loadBga" class="btn">Charger la partie BGA</button>
+            </div>
+          </div>
 
-            <button type="submit" class="btn">Importer</button>
-            <button type="button" id="refreshGames" class="btn btn-outline">Rafraîchir</button>
-          </form>
+          <div class="subcard">
+            <h3>Importer un fichier</h3>
+            <form id="importForm" class="group">
+              <label for="fileInput">Fichier texte :</label>
+              <input type="file" id="fileInput" accept=".txt" />
 
-          <!-- Liste DB scrollable -->
-          <div class="gamesListWrap">
-            <div id="gamesList" class="gamesList"></div>
+              <label for="importWidth">Largeur :</label>
+              <input type="number" id="importWidth" value="9" min="4" />
+
+              <label for="importHeight">Hauteur :</label>
+              <input type="number" id="importHeight" value="9" min="4" />
+
+              <label for="importStarts">Premier joueur :</label>
+              <select id="importStarts">
+                <option value="rouge">Rouge</option>
+                <option value="jaune">Jaune</option>
+              </select>
+
+              <button type="submit" class="btn">Importer la partie</button>
+              <button type="button" id="refreshGames" class="btn btn-outline">Actualiser la liste</button>
+            </form>
+          </div>
+
+          <div class="subcard">
+            <h3>Parties enregistrées</h3>
+            <p class="hint">Choisissez une partie à rejouer ou sa symétrie.</p>
+            <div class="gamesListWrap">
+              <div id="gamesList" class="gamesList"></div>
+            </div>
           </div>
         </section>
       </aside>
 
-      <!-- ===== COLONNE DROITE : STATUS + PLATEAU + PEINTURE ===== -->
+      <!-- ===== COLONNE DROITE ===== -->
       <main class="main">
-        <!-- Statut sticky (dans la colonne droite) -->
         <div class="statusbar">
+          <div class="helpBox">
+            Clique sur une colonne pour y déposer un pion. Le premier joueur qui aligne 4 pions gagne.
+          </div>
+
           <div id="deroulement" class="status">—</div>
+
           <div id="iaThinking" class="status-mini" style="display:none;">
-IA réfléchit… <span id="iaProgress">0%</span>
-</div>
+            IA réfléchit… <span id="iaProgress">0%</span>
+          </div>
+
           <div class="status-mini" id="lastMoveMini">—</div>
         </div>
 
-        <!-- Plateau + scores (alignés) -->
         <section class="boardArea">
           <div class="boardWrap">
             <div id="tableau" class="board"></div>
           </div>
-
           <div id="scores" class="scores"></div>
         </section>
 
-        <!-- Mode peinture -->
-        <section class="toolbar paint">
+        <section class="toolbar paint soft-block">
           <div class="paint-head">
-            <h2>Mode peinture</h2>
+            <div>
+              <h2>Créer une position personnalisée</h2>
+              <p class="hint">Placez les pions manuellement pour tester une situation particulière. N'oubliez pas d'activer le mode pinceau en cochant la case "Activer" et le désactiver pour reprendre la partie en mode joueur.</p>
+            </div>
+
             <label class="switch">
               <input type="checkbox" id="paintToggle" />
               <span>Activer</span>
@@ -138,13 +170,11 @@ IA réfléchit… <span id="iaProgress">0%</span>
           </div>
 
           <div class="group paint-tools">
-            <button class="btn brush" data-brush="rouge">Rouge</button>
-            <button class="btn brush" data-brush="jaune">Jaune</button>
+            <button class="btn brush" data-brush="rouge">Pion rouge</button>
+            <button class="btn brush" data-brush="jaune">Pion jaune</button>
             <button class="btn brush btn-outline" data-brush="erase">Effacer</button>
-            <button id="clearBoard" class="btn btn-ghost">Vider</button>
+            <button id="clearBoard" class="btn btn-ghost">Vider le plateau</button>
           </div>
-
-          <p class="hint"></p>
         </section>
       </main>
     </div>
