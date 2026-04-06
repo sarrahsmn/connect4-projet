@@ -606,85 +606,182 @@ function robotAleatoire(jouerVraiment = true){
 
 /* ===================== IA MINIMAX ===================== */
 let iaBusy = false;
+
+
+
 async function robotMinimax(jouerVraiment = true) {
- if (iaBusy || fin || enPause || enReplay) return;
-iaBusy = true;
 
-try {
-iaThinkingStart();
-await new Promise(r => setTimeout(r, 50));
+  if (iaBusy || fin || enPause || enReplay) return;
 
-  const maxP = joueurActif;
-  const t0 = cloneTableau(tableau);
+  iaBusy = true;
 
-  const winningNow = findImmediateWin(t0, maxP);
-  if (winningNow != null) {
-    iaThinkingProgress(100);
-    if (jouerVraiment) appliquerCoup(winningNow);
-    await iaThinkingStop();
-    return;
-  }
 
-  const opp = (maxP === "rouge") ? "jaune" : "rouge";
-  const oppWinCol = findImmediateWin(t0, opp);
-  if (oppWinCol != null) {
-    iaThinkingProgress(100);
-    if (jouerVraiment) appliquerCoup(oppWinCol);
-    await iaThinkingStop();
-    return;
-  }
 
-  const safeMoves = [];
-  for (let c = 0; c < L(); c++) {
-    const r = caseDispoSur(t0, c);
-    if (r !== -1 && !moveAllowsOppImmediateWin(t0, c, maxP)) {
-      safeMoves.push(c);
-    }
-  }
+  try {
 
-  const candidateMoves = safeMoves.length ? safeMoves : coupsPossibles(t0);
+    iaThinkingStart();
 
-  const totalEmpty = t0.flat().filter(x => x === null).length;
-  const extraDepth = (totalEmpty <= 16) ? 1 : 0;
-  const depth = Math.min(8, IA.depth + extraDepth);
+    await new Promise(r => setTimeout(r, 50));
 
-  let bestCol = null;
-  let bestScore = -Infinity;
 
-  for (let i = 0; i < candidateMoves.length; i++) {
-    const col = candidateMoves[i];
-    const r = caseDispoSur(t0, col);
-    if (r === -1) continue;
 
-    t0[r][col] = maxP;
-    const val = await minimaxAsync(t0, depth - 1, false, maxP, -Infinity, +Infinity);
-    t0[r][col] = null;
+    const maxP = joueurActif;
 
-    if (val > bestScore) {
-      bestScore = val;
-      bestCol = col;
+    const t0 = cloneTableau(tableau);
+
+
+
+    // WIN EN 1
+
+    const winningNow = findImmediateWin(t0, maxP);
+
+    if (winningNow != null) {
+
+      iaThinkingProgress(100);
+
+      if (jouerVraiment) appliquerCoup(winningNow);
+
+      return;
+
     }
 
-    const p = 20 + ((i + 1) / candidateMoves.length) * 70;
-    iaThinkingProgress(p);
 
-    await new Promise(r => setTimeout(r, 20));
+
+    // BLOCAGE
+
+    const opp = (maxP === "rouge") ? "jaune" : "rouge";
+
+    const oppWinCol = findImmediateWin(t0, opp);
+
+    if (oppWinCol != null) {
+
+      iaThinkingProgress(100);
+
+      if (jouerVraiment) appliquerCoup(oppWinCol);
+
+      return;
+
+    }
+
+
+
+    // COUPS SÛRS
+
+    const safeMoves = [];
+
+    for (let c = 0; c < L(); c++) {
+
+      const r = caseDispoSur(t0, c);
+
+      if (r !== -1 && !moveAllowsOppImmediateWin(t0, c, maxP)) {
+
+        safeMoves.push(c);
+
+      }
+
+    }
+
+
+
+    const candidateMoves = safeMoves.length ? safeMoves : coupsPossibles(t0);
+
+
+
+    const totalEmpty = t0.flat().filter(x => x === null).length;
+
+    const depth = Math.min(8, IA.depth + (totalEmpty <= 16 ? 1 : 0));
+
+
+
+    let bestCol = null;
+
+    let bestScore = -Infinity;
+
+
+
+    for (let i = 0; i < candidateMoves.length; i++) {
+
+      const col = candidateMoves[i];
+
+      const r = caseDispoSur(t0, col);
+
+      if (r === -1) continue;
+
+
+
+      t0[r][col] = maxP;
+
+      const val = await minimaxAsync(
+
+        t0,
+
+        depth - 1,
+
+        false,
+
+        maxP,
+
+        -Infinity,
+
+        Infinity
+
+      );
+
+      t0[r][col] = null;
+
+
+
+      if (val > bestScore) {
+
+        bestScore = val;
+
+        bestCol = col;
+
+      }
+
+
+
+      iaThinkingProgress(20 + ((i + 1) / candidateMoves.length) * 70);
+
+      await new Promise(r => setTimeout(r, 20));
+
+    }
+
+
+
+    iaThinkingProgress(100);
+
+
+
+    if (bestCol != null) {
+
+      clearBestScores();
+
+      markBestScore(bestCol);
+
+      if (jouerVraiment) appliquerCoup(bestCol);
+
+      else statut.textContent = `Minimax suggère : colonne ${bestCol+1}`;
+
+    } else {
+
+      robotAleatoire(jouerVraiment);
+
+    }
+
+
+
+  } finally {
+
+    await iaThinkingStop();
+
+    iaBusy = false;
+
   }
 
-  iaThinkingProgress(100);
+}
 
-  if (bestCol != null) {
-    clearBestScores();
-    markBestScore(bestCol);
-    if (jouerVraiment) appliquerCoup(bestCol);
-    else statut.textContent = `Minimax suggère : colonne ${bestCol+1}`;
-  } else {
-    robotAleatoire(jouerVraiment);
- } finally {
-await iaThinkingStop();
-iaBusy = false;
-}
-}
+
 
 /* ===== DB / Backend ===== */
 const API = "https://connect4-projet.onrender.com";
