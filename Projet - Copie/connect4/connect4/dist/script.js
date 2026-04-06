@@ -605,11 +605,14 @@ function robotAleatoire(jouerVraiment = true){
 }
 
 /* ===================== IA MINIMAX ===================== */
+let iaBusy = false;
 async function robotMinimax(jouerVraiment = true) {
-  if (fin || enPause || enReplay) return;
+ if (iaBusy || fin || enPause || enReplay) return;
+iaBusy = true;
 
-  iaThinkingStart();
-  await new Promise(r => setTimeout(r, 50));
+try {
+iaThinkingStart();
+await new Promise(r => setTimeout(r, 50));
 
   const maxP = joueurActif;
   const t0 = cloneTableau(tableau);
@@ -677,77 +680,70 @@ async function robotMinimax(jouerVraiment = true) {
     else statut.textContent = `Minimax suggère : colonne ${bestCol+1}`;
   } else {
     robotAleatoire(jouerVraiment);
-  }
-
-  await iaThinkingStop();
+ } finally {
+await iaThinkingStop();
+iaBusy = false;
+}
 }
 
 /* ===== DB / Backend ===== */
 const API = "https://connect4-projet.onrender.com";
 
 async function robotDb(){
-  if (fin || enPause || enReplay) return;
+if (fin || enPause || enReplay) return;
 
-  iaThinkingStart();
+iaThinkingStart();
 
-  const urgence = coupBDFiltré();
+try {
+
+// ✅ FILTRE TACTIQUE AVANT DB
+const urgence = coupBDFiltré();
 if (urgence !== null) {
 clearBestScores();
 markBestScore(urgence);
 statut.textContent = "⚠️ Blocage tactique nécessaire (menace immédiate)";
-iaThinkingProgress(100);
 appliquerCoup(urgence);
-await iaThinkingStop();
 return;
 }
-  iaThinkingProgress(10);
 
-  const seqStr = (historique || []).map(h => h.col+1).join('');
-  const playable = [];
-  for(let c=0;c<L();c++) playable.push(caseDispo(c)!==-1 ? 1 : 0);
+iaThinkingProgress(10);
 
-  try{
-    iaThinkingProgress(30);
+const seqStr = (historique || []).map(h => h.col+1).join('');
+const playable = [];
+for (let c=0;c<L();c++) playable.push(caseDispo(c)!==-1 ? 1 : 0);
 
-    const url = `${API}/ai/db?seq=${encodeURIComponent(seqStr)}&width=${L()}&height=${H()}&playable=${playable.join(',')}`;
-    const res = await fetch(url);
+iaThinkingProgress(30);
+const url = `${API}/ai/db?seq=${encodeURIComponent(seqStr)}&width=${L()}&height=${H()}&playable=${playable.join(',')}`;
+const res = await fetch(url);
 
-    iaThinkingProgress(70);
-
-    const data = await res.json();
-
-    clearBestScores();
-    if (Array.isArray(data.scores) && data.scores.length===L()){
-      for(let c=0;c<L();c++) setScoreCol(c, data.scores[c], true);
-    }
-
-    
-
-// ✅ PAS DE MENACE → ON PEUT UTILISER LA BD
-let col = (typeof data.best === "number") ? data.best : null;
-
-if (col == null || data.fallback === "low_coverage"){
-statut.textContent = `DB : couverture faible → Minimax`;
-await iaThinkingStop();
-return robotMinimax(true);
-}
+iaThinkingProgress(70);
+const data = await res.json();
 
 clearBestScores();
-markBestScore(col);
-statut.textContent = `DB joue colonne ${col+1}`;
-
-iaThinkingProgress(100);
-appliquerCoup(col);
-await iaThinkingStop();
-
-  } catch(e){
-    console.error("robotDb error:", e);
-    statut.textContent = "DB : erreur → aléatoire";
-    await iaThinkingStop();
-    robotAleatoire(true);
-  }
+if (Array.isArray(data.scores) && data.scores.length === L()){
+for (let c=0;c<L();c++) setScoreCol(c, data.scores[c], true);
 }
 
+const col = (typeof data.best === "number") ? data.best : null;
+if (col == null || data.fallback === "low_coverage"){
+statut.textContent = "DB : couverture faible → Minimax";
+await robotMinimax(true);
+return;
+}
+
+markBestScore(col);
+statut.textContent = `DB joue colonne ${col+1}`;
+appliquerCoup(col);
+
+} catch(e){
+console.error("robotDb error:", e);
+statut.textContent = "DB : erreur → aléatoire";
+robotAleatoire(true);
+} finally {
+iaThinkingProgress(100);
+await iaThinkingStop();
+}
+}
 function robotJoue(){
   if (IA.type === "db") return robotDb();
   if (IA.type === "minimax") return robotMinimax(true);
@@ -756,71 +752,69 @@ function robotJoue(){
 
 /* ===================== IA SUGGÈRE (sans jouer) ===================== */
 async function analyserSansJouer(){
-  if (fin || enPause || enReplay) return;
+if (fin || enPause || enReplay) return;
 
-  iaThinkingStart();
+iaThinkingStart();
 
-  if (IA.type === "minimax") {
-    return robotMinimax(false);
-  }
+try {
 
-  if (IA.type === "aleatoire") {
-    clearBestScores();
-    for(let c=0;c<L();c++) setScoreCol(c, null, false);
-    robotAleatoire(false);
-    iaThinkingProgress(100);
-    await iaThinkingStop();
-    return;
-  }
-
-  try{
-    iaThinkingProgress(25);
-
-    const seqStr = (historique || []).map(h => h.col+1).join('');
-    const playable = [];
-    for(let c=0;c<L();c++) playable.push(caseDispo(c)!==-1 ? 1 : 0);
-
-    const url = `${API}/ai/db?seq=${encodeURIComponent(seqStr)}&width=${L()}&height=${H()}&playable=${playable.join(',')}`;
-    const res = await fetch(url);
-
-    iaThinkingProgress(70);
-
-    const data = await res.json();
-
-    clearBestScores();
-
-    if (Array.isArray(data.scores) && data.scores.length===L()){
-      for(let c=0;c<L();c++) setScoreCol(c, data.scores[c], true);
-    } else {
-      for(let c=0;c<L();c++) setScoreCol(c, null, false);
-    }
-const urgence = coupBDFiltré();
-if (urgence !== null) {
-clearBestScores();
-markBestScore(urgence);
-statut.textContent = "⚠️ Coup vital à jouer (menace immédiate)";
-iaThinkingProgress(100);
-await iaThinkingStop();
+// === MINIMAX ===
+if (IA.type === "minimax") {
+await robotMinimax(false);
 return;
 }
-    if (typeof data.best === "number"){
-      markBestScore(data.best);
-      statut.textContent = `DB : meilleur coup = colonne ${data.best+1} (coverage=${data.coverage ?? 0})`;
-    } else {
-      statut.textContent = `DB : pas assez de données (coverage=${data.coverage ?? 0})`;
-    }
 
-    iaThinkingProgress(100);
-    await iaThinkingStop();
-
-  } catch(e){
-    console.error("analyse db error:", e);
-    statut.textContent = "Analyse DB : erreur → Minimax";
-    await iaThinkingStop();
-    return robotMinimax(false);
-  }
+// === ALÉATOIRE ===
+if (IA.type === "aleatoire") {
+clearBestScores();
+for (let c=0; c<L(); c++) setScoreCol(c, null, false);
+robotAleatoire(false);
+return;
 }
 
+// === DB ===
+iaThinkingProgress(25);
+
+const seqStr = (historique || []).map(h => h.col+1).join('');
+const playable = [];
+for (let c=0;c<L();c++) playable.push(caseDispo(c)!==-1 ? 1 : 0);
+
+const url = `${API}/ai/db?seq=${encodeURIComponent(seqStr)}&width=${L()}&height=${H()}&playable=${playable.join(',')}`;
+const res = await fetch(url);
+
+iaThinkingProgress(70);
+
+const data = await res.json();
+
+clearBestScores();
+if (Array.isArray(data.scores) && data.scores.length === L()){
+for (let c=0;c<L();c++) setScoreCol(c, data.scores[c], true);
+}
+
+// ✅ FILTRE TACTIQUE
+const urgence = coupBDFiltré();
+if (urgence !== null) {
+markBestScore(urgence);
+statut.textContent = "⚠️ Coup vital à jouer (menace immédiate)";
+return;
+}
+
+if (typeof data.best === "number"){
+markBestScore(data.best);
+statut.textContent = `DB : meilleur coup = colonne ${data.best+1} (coverage=${data.coverage ?? 0})`;
+} else {
+statut.textContent = `DB : pas assez de données (coverage=${data.coverage ?? 0})`;
+}
+
+} catch(e){
+console.error("analyse db error:", e);
+statut.textContent = "Analyse DB : erreur → Minimax";
+await robotMinimax(false);
+} finally {
+iaThinkingProgress(100);
+await iaThinkingStop();
+}
+}
 /* ===================== UNDO / SAVE / LOAD ===================== */
 function annuler(){
   if (historique.length===0) return;
