@@ -78,7 +78,7 @@
             <button id="analyseNow" class="btn">Me conseiller un coup</button>
             <button id="aiPlayOnce" class="btn btn-ghost">Voir le coup de l’IA</button>
           </div>
-
+<button id="predictBtn" class="btn btn-outline">Analyse</button>
           <div class="group replay-group">
             <button id="prev" class="btn btn-ghost">Coup précédent</button>
             <button id="next" class="btn btn-ghost">Coup suivant</button>
@@ -136,6 +136,9 @@
       <!-- ===== COLONNE DROITE ===== -->
       <main class="main">
         <div class="statusbar">
+          <div id="predictionBar" class="predictionbar" style="display:none;">
+🔮 <span id="predictionText">Analyse en cours…</span>
+</div>
           <div class="helpBox">
             Clique sur une colonne pour y déposer un pion. Le premier joueur qui aligne 4 pions gagne.
           </div>
