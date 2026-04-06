@@ -1246,6 +1246,89 @@ document.getElementById("importForm")?.addEventListener("submit", async (e)=>{
   }
 });
 
+
+
+function showPrediction(text, type = "neutral") {
+const bar = document.getElementById("predictionBar");
+const span = document.getElementById("predictionText");
+if (!bar || !span) return;
+
+bar.className = "predictionbar " + type;
+span.textContent = text;
+bar.style.display = "block";
+}
+async function detectWinningDepth(board, player, maxDepth = 6) {
+const opponent = (player === "rouge") ? "jaune" : "rouge";
+
+for (let depth = 1; depth <= maxDepth; depth++) {
+const score = await minimaxAsync(
+cloneTableau(board),
+depth,
+true,
+player,
+-Infinity,
+Infinity
+);
+
+// Convention : gros score = win forcée
+if (score > 90000) {
+return { winner: player, depth };
+}
+if (score < -90000) {
+return { winner: opponent, depth };
+}
+}
+
+return null; // pas de gain forcé détecté
+}
+
+
+async function getDbAdvantage() {
+try {
+const seqStr = historique.map(h => h.col + 1).join("");
+const playable = [];
+for (let c = 0; c < L(); c++) playable.push(caseDispo(c) !== -1 ? 1 : 0);
+
+const url = `${API}/ai/db?seq=${seqStr}&width=${L()}&height=${H()}&playable=${playable.join(",")}`;
+const r = await fetch(url);
+const data = await r.json();
+
+if (data.coverage < 20) return null;
+
+const avg = data.scores.reduce((a,b)=>a+b,0) / data.scores.length;
+return avg > 20 ? "rouge" : avg < -20 ? "jaune" : "neutral";
+} catch {
+return null;
+}
+}
+async function runPrediction() {
+
+showPrediction("Analyse de la position…");
+
+const board = tableau;
+const current = joueurActif;
+
+// 1) Minimax → victoire forcée ?
+const win = await detectWinningDepth(board, current, 6);
+
+if (win) {
+showPrediction(
+`${win.winner.toUpperCase()} peut gagner en ${win.depth} coups`,
+win.winner === "rouge" ? "good" : "bad"
+);
+return;
+}
+  
+  const adv = await getDbAdvantage();
+
+if (adv === "rouge") {
+showPrediction("Rouge est statistiquement avantagé", "good");
+} else if (adv === "jaune") {
+showPrediction("Jaune est statistiquement avantagé", "bad");
+} else {
+showPrediction("Position équilibrée / nulle probable", "neutral");
+}
+}
 document.getElementById("refreshGames")?.addEventListener("click", refreshGamesList);
 
 document.getElementById("loadBga")?.addEventListener("click", ()=>{
@@ -1270,6 +1353,8 @@ document.querySelector('.brush[data-brush="rouge"]')?.classList.add("active");
 
 document.getElementById("clearBoard")?.addEventListener("click", clearBoardPaint);
 document.getElementById("syncHistory")?.addEventListener("click", syncHistoryFromBoard);
+document.getElementById("predictBtn")
+?.addEventListener("click", runPrediction);
 
 /* ===================== START ===================== */
 main(true);
