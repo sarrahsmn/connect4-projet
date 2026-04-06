@@ -689,6 +689,17 @@ async function robotDb(){
   if (fin || enPause || enReplay) return;
 
   iaThinkingStart();
+
+  const urgence = coupBDFiltré();
+if (urgence !== null) {
+clearBestScores();
+markBestScore(urgence);
+statut.textContent = "⚠️ Blocage tactique nécessaire (menace immédiate)";
+iaThinkingProgress(100);
+appliquerCoup(urgence);
+await iaThinkingStop();
+return;
+}
   iaThinkingProgress(10);
 
   const seqStr = (historique || []).map(h => h.col+1).join('');
@@ -710,20 +721,24 @@ async function robotDb(){
       for(let c=0;c<L();c++) setScoreCol(c, data.scores[c], true);
     }
 
-    let col = (typeof data.best === "number") ? data.best : null;
+    
 
-    if (col == null || data.fallback === "low_coverage"){
-      statut.textContent = `DB : couverture faible → Minimax`;
-      await iaThinkingStop();
-      return robotMinimax(true);
-    }
+// ✅ PAS DE MENACE → ON PEUT UTILISER LA BD
+let col = (typeof data.best === "number") ? data.best : null;
 
-    markBestScore(col);
-    statut.textContent = `DB joue colonne ${col+1}`;
+if (col == null || data.fallback === "low_coverage"){
+statut.textContent = `DB : couverture faible → Minimax`;
+await iaThinkingStop();
+return robotMinimax(true);
+}
 
-    iaThinkingProgress(100);
-    appliquerCoup(col);
-    await iaThinkingStop();
+clearBestScores();
+markBestScore(col);
+statut.textContent = `DB joue colonne ${col+1}`;
+
+iaThinkingProgress(100);
+appliquerCoup(col);
+await iaThinkingStop();
 
   } catch(e){
     console.error("robotDb error:", e);
@@ -779,7 +794,15 @@ async function analyserSansJouer(){
     } else {
       for(let c=0;c<L();c++) setScoreCol(c, null, false);
     }
-
+const urgence = coupBDFiltré();
+if (urgence !== null) {
+clearBestScores();
+markBestScore(urgence);
+statut.textContent = "⚠️ Coup vital à jouer (menace immédiate)";
+iaThinkingProgress(100);
+await iaThinkingStop();
+return;
+}
     if (typeof data.best === "number"){
       markBestScore(data.best);
       statut.textContent = `DB : meilleur coup = colonne ${data.best+1} (coverage=${data.coverage ?? 0})`;
