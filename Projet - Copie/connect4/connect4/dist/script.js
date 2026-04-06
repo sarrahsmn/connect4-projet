@@ -579,6 +579,92 @@ async function minimaxAsync(t, depth, maximizing, maxP, alpha, beta) {
   }
 }
 
+  /* ===== GARDE-FOUS TACTIQUES ABSOLUS ===== */
+
+function peutGagnerEnUn(t, joueur) {
+for (let c = 0; c < L(); c++) {
+const r = caseDispoSur(t, c);
+if (r === -1) continue;
+t[r][c] = joueur;
+const gagne = gagnantSur(t) === joueur;
+t[r][c] = null;
+if (gagne) return c;
+}
+return null;
+}
+
+function gardeFouTactique() {
+const t0 = cloneTableau(tableau);
+const moi = joueurActif;
+const adv = moi === "rouge" ? "jaune" : "rouge";
+
+const winNow = peutGagnerEnUn(t0, moi);
+if (winNow !== null) {
+return { type: "WIN", col: winNow };
+}
+
+const blockNow = peutGagnerEnUn(t0, adv);
+if (blockNow !== null) {
+return { type: "BLOCK", col: blockNow };
+}
+
+return null;
+}
+
+function coupsSurs(t, joueur) {
+const adv = joueur === "rouge" ? "jaune" : "rouge";
+const res = [];
+
+for (let c = 0; c < L(); c++) {
+const r = caseDispoSur(t, c);
+if (r === -1) continue;
+
+t[r][c] = joueur;
+const danger = peutGagnerEnUn(t, adv);
+t[r][c] = null;
+
+if (danger === null) res.push(c);
+}
+
+return res;
+}
+
+
+async function jouerCoupIAGaranti() {
+
+// 🛑 priorité absolue : garde-fou
+const urgence = gardeFouTactique();
+if (urgence) {
+clearBestScores();
+markBestScore(urgence.col);
+
+statut.textContent =
+urgence.type === "WIN"
+? "✅ Coup gagnant immédiat"
+: "⚠️ Blocage obligatoire (menace immédiate)";
+
+appliquerCoup(urgence.col);
+return;
+}
+
+// ✅ pas d'urgence → coups sûrs
+const t0 = cloneTableau(tableau);
+const surs = coupsSurs(t0, joueurActif);
+
+if (!surs.length) {
+statut.textContent = "⚠️ Aucun coup sûr (position critique)";
+}
+
+// 🔽 stratégie normale ensuite
+if (IA.type === "db") {
+await robotDb();
+} else if (IA.type === "minimax") {
+await robotMinimax(true);
+} else {
+robotAleatoire(true);
+}
+}
+
 /* ===================== IA ALÉATOIRE ===================== */
 function robotAleatoire(jouerVraiment = true){
   if (fin || enPause || enReplay) return null;
@@ -1077,10 +1163,11 @@ function parametrage(){
 /* ===================== MODE 0 (IA vs IA) + switch runtime ===================== */
 function lancerMode0(){
   clearInterval(autoTimer);
-  autoTimer = setInterval(()=>{
-    if (!fin && !enPause && !enReplay) robotJoue();
-  }, 400);
+  autoTimer = setInterval(async () => {
+if (!fin && !enPause && !enReplay) {
+await jouerCoupIAGaranti();
 }
+}, 400);
 
 function applyModeRuntime(){
   clearInterval(autoTimer);
@@ -1325,9 +1412,9 @@ document.getElementById("depth")?.addEventListener("change", (e)=>{
 
 document.getElementById("analyseNow")?.addEventListener("click", analyserSansJouer);
 
-document.getElementById("aiPlayOnce")?.addEventListener("click", ()=>{
-  if (fin || enPause || enReplay) return;
-  robotJoue();
+document.getElementById("aiPlayOnce")?.addEventListener("click", async () => {
+if (fin || enPause || enReplay) return;
+await jouerCoupIAGaranti();
 });
 
 elMode?.addEventListener("change", ()=>{
