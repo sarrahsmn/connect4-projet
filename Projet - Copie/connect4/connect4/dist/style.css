@@ -420,3 +420,32 @@ button:hover{
     width: 100%;
   }
 }
+
+
+.predictionbar {
+margin-top: 10px;
+padding: 10px 14px;
+border-radius: 10px;
+font-weight: bold;
+border: 2px solid #aaa;
+background: #f3f3f3;
+color: #333;
+}
+
+.predictionbar.good {
+background: #e4ffe8;
+border-color: #29b35a;
+color: #014d19;
+}
+
+.predictionbar.bad {
+background: #ffe4e4;
+border-color: #d64c4c;
+color: #6e0000;
+}
+
+.predictionbar.neutral {
+background: #f3f3f3;
+border-color: #aaa;
+color: #444;
+}
