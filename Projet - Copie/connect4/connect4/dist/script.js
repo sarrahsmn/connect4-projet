@@ -1162,23 +1162,24 @@ function parametrage(){
 
 /* ===================== MODE 0 (IA vs IA) + switch runtime ===================== */
 function lancerMode0(){
-  clearInterval(autoTimer);
-  autoTimer = setInterval(async () => {
+clearInterval(autoTimer);
+autoTimer = setInterval(async () => {
 if (!fin && !enPause && !enReplay) {
 await jouerCoupIAGaranti();
 }
 }, 400);
+} 
 
 function applyModeRuntime(){
-  clearInterval(autoTimer);
-  autoTimer=null;
-  if (mode === 0) lancerMode0();
+clearInterval(autoTimer);
+autoTimer = null;
 
-  if (mode === 1 && !fin && !enPause && !enReplay && joueurActif === getIAColor()){
-    setTimeout(robotJoue, 200);
-  }
+if (mode === 0) lancerMode0();
+
+if (mode === 1 && !fin && !enPause && !enReplay && joueurActif === getIAColor()){
+setTimeout(robotJoue, 200);
 }
-
+}
 /* ===================== API import / games ===================== */
 async function apiImportFile(file, width, height, starts){
   const fd=new FormData();
