@@ -1022,12 +1022,38 @@ function annuler(){
 }
 
 function sauvegarder(){
-  const save = {
-    idPartie, config, mode, tableau, joueurActif, fin, resultat,
-    historique, lastMove, IA, humanColor: getHumanColor()
-  };
-  localStorage.setItem("p4_save", JSON.stringify(save));
-  statut.textContent = "Sauvegarde faite.";
+const save = {
+idPartie,
+config,
+mode,
+tableau,
+joueurActif,
+fin,
+resultat,
+historique,
+lastMove,
+IA,
+humanColor: getHumanColor()
+};
+
+// ✅ Sauvegarde locale
+localStorage.setItem("p4_save", JSON.stringify(save));
+
+// ✅ Sauvegarde en base de données
+fetch(`${API}/save-game`, {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({
+seq: historique.map(h => h.col + 1).join(""),
+width: L(),
+height: H(),
+result: resultat
+})
+}).catch(err => {
+console.warn("Sauvegarde DB échouée", err);
+});
+
+statut.textContent = "Partie sauvegardée (local + base de données)";
 }
 
 function reprendre(){
