@@ -265,6 +265,45 @@ console.error("Erreur affichage poids DB", e);
 }
 }
 
+async function afficherPoidsMinimax() {
+if (fin || enReplay) return;
+
+const t0 = cloneTableau(tableau);
+const maxP = joueurActif;
+const depth = IA.depth;
+
+for (let c = 0; c < L(); c++) {
+const r = caseDispoSur(t0, c);
+if (r === -1) {
+setScoreCol(c, "—", false);
+continue;
+}
+
+t0[r][c] = maxP;
+const val = await minimaxAsync(
+t0,
+depth - 1,
+false,
+maxP,
+-Infinity,
+Infinity
+);
+t0[r][c] = null;
+
+setScoreCol(c, Math.round(val), true);
+}
+}
+async function afficherPoids() {
+// ✅ on enlève seulement le CONSEIL précédent
+clearBestScores();
+
+if (IA.type === "db") {
+await afficherPoidsDB();
+} else if (IA.type === "minimax") {
+await afficherPoidsMinimax();
+}
+}
+
 async function conseillerCoupDB() {
 if (fin || enReplay) return;
 
@@ -294,6 +333,54 @@ statut.textContent = "Pas assez de données pour conseiller un coup";
 
 } catch (e) {
 console.error("Erreur conseil DB", e);
+}
+}
+
+async function conseillerCoup() {
+if (fin || enReplay) return;
+
+clearBestScores();
+
+if (IA.type === "db") {
+await conseillerCoupDB();
+} else if (IA.type === "minimax") {
+await conseillerCoupMinimax();
+}
+}
+
+async function conseillerCoupMinimax() {
+const t0 = cloneTableau(tableau);
+const maxP = joueurActif;
+const depth = IA.depth;
+
+let bestCol = null;
+let bestScore = -Infinity;
+
+for (let c = 0; c < L(); c++) {
+const r = caseDispoSur(t0, c);
+if (r === -1) continue;
+
+t0[r][c] = maxP;
+const val = await minimaxAsync(
+t0,
+depth - 1,
+false,
+maxP,
+-Infinity,
+Infinity
+);
+t0[r][c] = null;
+
+if (val > bestScore) {
+bestScore = val;
+bestCol = c;
+}
+}
+
+if (bestCol !== null) {
+markBestScore(bestCol);
+statut.textContent =
+`Conseil Minimax (profondeur ${depth}) : colonne ${bestCol + 1}`;
 }
 }
 /* ===================== PLATEAU VISU ===================== */
@@ -435,10 +522,18 @@ function appliquerCoup(col){
     return true;
   }
 
-  joueurActif = (joueurActif === "rouge") ? "jaune" : "rouge";
-  MAJ();
-  afficherPoidsDB(); // ✅ ici
-  return true;
+ 
+joueurActif = (joueurActif === "rouge") ? "jaune" : "rouge";
+
+// ✅ au JEU suivant, le conseil disparaît
+clearBestScores();
+
+MAJ();
+
+// ✅ poids DB ou Minimax selon le paramètre IA
+afficherPoids();
+
+return true;
 }
 
 /* ===================== MODE HUMAIN / IA (couleur) ===================== */
@@ -748,7 +843,7 @@ function robotAleatoire(jouerVraiment = true){
 
   if (jouerVraiment) {
     appliquerCoup(col);
-    afficherPoidsDB(); // ✅ À AJOUTER
+    afficherPoids(); // ✅ À AJOUTER
   } else {
     statut.textContent = `Aléatoire (suggéré) : colonne ${col+1}`;
   }
@@ -826,7 +921,7 @@ async function robotMinimax(jouerVraiment = true) {
       iaThinkingProgress(100);
 
       if (jouerVraiment) appliquerCoup(winningNow);
-      afficherPoidsDB(); // ✅ À AJOUTER
+      afficherPoids(); // ✅ À AJOUTER
 
       return;
 
@@ -986,7 +1081,7 @@ clearBestScores();
 markBestScore(urgence);
 statut.textContent = "⚠️ Blocage tactique nécessaire (menace immédiate)";
 appliquerCoup(urgence);
-  afficherPoidsDB(); // ✅ À AJOUTER
+  afficherPoids(); // ✅ À AJOUTER
 return;
 }
 
@@ -1018,7 +1113,7 @@ return;
 markBestScore(col);
 statut.textContent = `DB joue colonne ${col+1}`;
 appliquerCoup(col);
-  afficherPoidsDB(); // ✅ À AJOUTER
+  afficherPoids(); // ✅ À AJOUTER
 
 } catch(e){
 console.error("robotDb error:", e);
@@ -1261,7 +1356,7 @@ function sortirReplay(){
 
   snapshotAvantReplay=null;
   MAJ();
-  afficherPoidsDB(); // ✅ À AJOUTER
+  afficherPoids(); // ✅ À AJOUTER
 }
 
 /* ===================== PARAMS ===================== */
@@ -1324,7 +1419,7 @@ function rejouerSequence(seqStr){
     appliquerCoup(col0);
   }
   MAJ();
-  afficherPoidsDB(); // ✅ À AJOUTER
+  afficherPoids(); // ✅ À AJOUTER
 }
 
 async function refreshGamesList(){
@@ -1452,7 +1547,7 @@ function paintApply(row, col){
   if (guess) joueurActif = guess;
 
   MAJ();
-  afficherPoidsDB(); // ✅ À AJOUTER
+  afficherPoids(); // ✅ À AJOUTER
 }
 
 function clearBoardPaint(){
@@ -1533,7 +1628,7 @@ document.getElementById("depth")?.addEventListener("change", (e)=>{
 });
 
 document.getElementById("analyseNow")
-?.addEventListener("click", conseillerCoupDB);
+?.addEventListener("click", conseillerCoup);
 
 document.getElementById("aiPlayOnce")?.addEventListener("click", async () => {
 if (fin || enPause || enReplay) return;
@@ -1692,3 +1787,4 @@ document.getElementById("predictBtn")
 /* ===================== START ===================== */
 main(true);
 refreshGamesList();
+
