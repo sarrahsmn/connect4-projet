@@ -380,7 +380,69 @@ app.get('/games/:id/mirror', async (req, res) => {
 
 });
 
+app.post('/save-game', async (req, res) => {
+try {
+const { seq, width, height, starts_with, source } = req.body;
 
+if (!seq || typeof seq !== "string") {
+return res.status(400).json({ error: "seq manquante ou invalide" });
+}
+
+const L = Number(width) || 9;
+const H = Number(height) || 9;
+const starts = starts_with === "jaune" ? "jaune" : "rouge";
+
+const seqArr = parseSeqStr(seq);
+if (!validateSeq(seqArr, L)) {
+return res.status(400).json({ error: "Séquence invalide" });
+}
+
+// reconstruire le board
+const board = buildEmptyBoard(H, L);
+let token = starts === "rouge" ? "R" : "Y";
+for (const c1 of seqArr) {
+drop(board, c1 - 1, token);
+token = token === "R" ? "Y" : "R";
+}
+
+const { canonical_seq, was_mirrored } = canonicalizeSeq(seq, L);
+const canonical_hash = sha256Hex(canonical_seq);
+const final_pos_hash = canonicalBoardHash(board, sha256Hex);
+const move_count = seqArr.length;
+const nb_cols = countPlayableColumns(board);
+
+const q = `
+INSERT INTO games (
+height, width, starts_with,
+seq_str, seq, move_count, status, result,
+canonical_seq, canonical_hash, was_mirrored,
+final_pos_hash,
+nb_cols, source, confiance
+)
+VALUES ($1,$2,$3,$4,$5,$6,'finished','unknown',
+$7,$8,$9,
+$10,
+$11,$12,$13)
+RETURNING id
+`;
+
+const vals = [
+H, L, starts,
+seq, seqArr, move_count,
+canonical_seq, canonical_hash, was_mirrored,
+final_pos_hash,
+nb_cols, (source ?? "live"), 1
+];
+
+const r = await pool.query(q, vals);
+
+res.json({ message: "Partie sauvegardée", id: r.rows[0].id });
+
+} catch (e) {
+console.error("Erreur /save-game :", e);
+res.status(500).json({ error: "Erreur serveur" });
+}
+});
 
 // I) MONTER LE ROUTEUR IA DB ICI (très important)
 
