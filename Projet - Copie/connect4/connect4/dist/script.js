@@ -1039,23 +1039,28 @@ humanColor: getHumanColor()
 // ✅ Sauvegarde locale
 localStorage.setItem("p4_save", JSON.stringify(save));
 
-// ✅ Sauvegarde en base via import-file (astuce soutenance)
+// ✅ Sauvegarde backend dédiée
 const seq = historique.map(h => h.col + 1).join("");
 
-const blob = new Blob([seq], { type: "text/plain" });
-const file = new File([blob], "live_game.txt", { type: "text/plain" });
-
-const fd = new FormData();
-fd.append("file", file);
-fd.append("width", String(L()));
-fd.append("height", String(H()));
-fd.append("starts_with", config.commence);
-
-fetch(`${API}/import-file`, {
+fetch(`${API}/save-game`, {
 method: "POST",
-body: fd
-}).catch(err => {
-console.warn("Sauvegarde DB échouée", err);
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({
+seq,
+width: L(),
+height: H(),
+starts_with: config.commence,
+source: "frontend"
+})
+})
+.then(r => r.json())
+.then(j => {
+statut.textContent = `✅ Partie enregistrée en base (id ${j.id})`;
+refreshGamesList();
+})
+.catch(err => {
+console.error(err);
+statut.textContent = "❌ Erreur sauvegarde DB";
 });
 }
 
