@@ -12,7 +12,7 @@
  * - PATCH Option A : recalcul automatique du joueurActif après peinture
  * - PATCH barre IA : progression visuelle robuste
  ******************************************************/
-
+const API = "https://connect4-projet.onrender.com";
 /* ===================== CONFIG ===================== */
 let config = { hauteur: 9, largeur: 9, commence: "rouge" };
 
@@ -218,39 +218,6 @@ function setScoreCol(col, value, valid){
   cell.classList.toggle("invalide", !valid);
 }
 
-
-async function afficherPoidsDB() {
-if (fin || enReplay) return;
-
-const seqStr = (historique || []).map(h => h.col + 1).join("");
-const playable = [];
-for (let c = 0; c < L(); c++) {
-playable.push(caseDispo(c) !== -1 ? 1 : 0);
-}
-
-try {
-const url = `${API}/ai/db?seq=${encodeURIComponent(seqStr)}&width=${L()}&height=${H()}&playable=${playable.join(",")}`;
-const res = await fetch(url);
-const data = await res.json();
-
-clearBestScores();
-
-if (Array.isArray(data.scores) && data.scores.length === L()) {
-for (let c = 0; c < L(); c++) {
-setScoreCol(c, data.scores[c], true); // ✅ POIDS VISIBLES
-}
-}
-
-// ✅ mettre en évidence le meilleur coup DB
-if (typeof data.best === "number") {
-markBestScore(data.best);
-}
-
-} catch (e) {
-console.error("Erreur affichage poids DB", e);
-}
-}
-
 function clearBestScores(){
   const S = document.getElementById("scores");
   if (!S) return;
@@ -264,7 +231,71 @@ function markBestScore(col){
   const cell = S.children[col + 1];
   if (cell) cell.classList.add("best");
 }
+/* ===================== POIDS DB (toujours visibles) ===================== */
+async function afficherPoidsDB() {
+if (fin || enReplay) return;
 
+try {
+const seqStr = historique.map(h => h.col + 1).join("");
+const playable = [];
+for (let c = 0; c < L(); c++) {
+playable.push(caseDispo(c) !== -1 ? 1 : 0);
+}
+
+const url =
+`${API}/ai/db?seq=${encodeURIComponent(seqStr)}` +
+`&width=${L()}&height=${H()}` +
+`&playable=${playable.join(",")}`;
+
+const res = await fetch(url);
+const data = await res.json();
+
+// ✅ uniquement les POIDS
+if (Array.isArray(data.scores) && data.scores.length === L()) {
+for (let c = 0; c < L(); c++) {
+setScoreCol(c, data.scores[c], true);
+}
+}
+
+// ❌ PAS de clearBestScores
+// ❌ PAS de markBestScore ici
+
+} catch (e) {
+console.error("Erreur affichage poids DB", e);
+}
+}
+
+async function conseillerCoupDB() {
+if (fin || enReplay) return;
+
+try {
+const seqStr = historique.map(h => h.col + 1).join("");
+const playable = [];
+for (let c = 0; c < L(); c++) {
+playable.push(caseDispo(c) !== -1 ? 1 : 0);
+}
+
+const url =
+`${API}/ai/db?seq=${encodeURIComponent(seqStr)}` +
+`&width=${L()}&height=${H()}` +
+`&playable=${playable.join(",")}`;
+
+const res = await fetch(url);
+const data = await res.json();
+
+clearBestScores();
+
+if (typeof data.best === "number") {
+markBestScore(data.best);
+statut.textContent = `Conseil IA : jouer colonne ${data.best + 1}`;
+} else {
+statut.textContent = "Pas assez de données pour conseiller un coup";
+}
+
+} catch (e) {
+console.error("Erreur conseil DB", e);
+}
+}
 /* ===================== PLATEAU VISU ===================== */
 function TabVisu(){
   if (!Tab) return;
@@ -391,7 +422,7 @@ function appliquerCoup(col){
 
   setLastMove({ row, col, joueur: joueurActif });
 
-  clearBestScores();
+  //clearBestScores();
 
   if (Gagnant(row,col)){
     fin = true; resultat = joueurActif;
@@ -406,7 +437,7 @@ function appliquerCoup(col){
 
   joueurActif = (joueurActif === "rouge") ? "jaune" : "rouge";
   MAJ();
-  afficherPoidsDB(); // ✅ poids mis à jour automatiquement
+  afficherPoidsDB(); // ✅ ici
   return true;
 }
 
@@ -717,11 +748,46 @@ function robotAleatoire(jouerVraiment = true){
 
   if (jouerVraiment) {
     appliquerCoup(col);
+    afficherPoidsDB(); // ✅ À AJOUTER
   } else {
     statut.textContent = `Aléatoire (suggéré) : colonne ${col+1}`;
   }
 
   return col;
+}
+async function detectWinningLine(board, player, maxDepth = 6) {
+const opponent = player === "rouge" ? "jaune" : "rouge";
+
+for (let depth = 1; depth <= maxDepth; depth++) {
+const score = await minimaxAsync(
+cloneTableau(board),
+depth,
+true,
+player,
+-Infinity,
+Infinity
+);
+
+if (score > 90000) {
+return {
+result: "WIN",
+winner: player,
+in: depth
+};
+}
+
+if (score < -90000) {
+return {
+result: "LOSS",
+winner: opponent,
+in: depth
+};
+}
+}
+
+return {
+result: "UNKNOWN"
+};
 }
 
 /* ===================== IA MINIMAX ===================== */
@@ -760,6 +826,7 @@ async function robotMinimax(jouerVraiment = true) {
       iaThinkingProgress(100);
 
       if (jouerVraiment) appliquerCoup(winningNow);
+      afficherPoidsDB(); // ✅ À AJOUTER
 
       return;
 
@@ -873,21 +940,20 @@ async function robotMinimax(jouerVraiment = true) {
 
 
 
-    if (bestCol != null) {
+   if (bestCol != null) {
 
-      clearBestScores();
+clearBestScores();
+markBestScore(bestCol);
 
-      markBestScore(bestCol);
+if (jouerVraiment) {
+appliquerCoup(bestCol);
+afficherPoidsDB();
+} else {
+afficherPoidsDB();
+statut.textContent = `Minimax suggère : colonne ${bestCol + 1}`;
+}
 
-      if (jouerVraiment) appliquerCoup(bestCol);
-
-      else statut.textContent = `Minimax suggère : colonne ${bestCol+1}`;
-
-    } else {
-
-      robotAleatoire(jouerVraiment);
-
-    }
+}
 
 
 
@@ -904,7 +970,7 @@ async function robotMinimax(jouerVraiment = true) {
 
 
 /* ===== DB / Backend ===== */
-const API = "https://connect4-projet.onrender.com";
+
 
 async function robotDb(){
 if (fin || enPause || enReplay) return;
@@ -920,6 +986,7 @@ clearBestScores();
 markBestScore(urgence);
 statut.textContent = "⚠️ Blocage tactique nécessaire (menace immédiate)";
 appliquerCoup(urgence);
+  afficherPoidsDB(); // ✅ À AJOUTER
 return;
 }
 
@@ -951,6 +1018,7 @@ return;
 markBestScore(col);
 statut.textContent = `DB joue colonne ${col+1}`;
 appliquerCoup(col);
+  afficherPoidsDB(); // ✅ À AJOUTER
 
 } catch(e){
 console.error("robotDb error:", e);
@@ -971,50 +1039,64 @@ function robotJoue(){
 async function analyserSansJouer(){
 if (fin || enPause || enReplay) return;
 
+iaThinkingStart();
+
 try {
 
-// ✅ 1. Vérifier s'il existe un coup forcé immédiat
-const urgence = gardeFouTactique();
-
-if (urgence) {
-markBestScore(urgence.col);
-statut.textContent =
-urgence.type === "WIN"
-? "✅ Victoire forcée détectée (coup obligatoire)"
-: "⚠️ Blocage obligatoire détecté (menace immédiate)";
+// === MINIMAX ===
+if (IA.type === "minimax") {
+await robotMinimax(false);
 return;
 }
 
-// ✅ 2. Sinon, expliquer que le meilleur coup vient des poids DB
-const S = document.getElementById("scores");
-let bestCol = null;
-let bestScore = -Infinity;
-
-if (S) {
-for (let c = 0; c < L(); c++) {
-const cell = S.children[c + 1];
-if (!cell) continue;
-
-const v = Number(cell.textContent);
-if (!isNaN(v) && v > bestScore) {
-bestScore = v;
-bestCol = c;
-}
-}
+// === ALÉATOIRE ===
+if (IA.type === "aleatoire") {
+clearBestScores();
+for (let c=0; c<L(); c++) setScoreCol(c, null, false);
+robotAleatoire(false);
+return;
 }
 
-if (bestCol !== null) {
-markBestScore(bestCol);
-statut.textContent =
-`D'après l'analyse statistique, le meilleur coup est la colonne ${bestCol + 1}`;
+// === DB ===
+iaThinkingProgress(25);
+
+const seqStr = (historique || []).map(h => h.col+1).join('');
+const playable = [];
+for (let c=0;c<L();c++) playable.push(caseDispo(c)!==-1 ? 1 : 0);
+
+const url = `${API}/ai/db?seq=${encodeURIComponent(seqStr)}&width=${L()}&height=${H()}&playable=${playable.join(',')}`;
+const res = await fetch(url);
+
+iaThinkingProgress(70);
+
+const data = await res.json();
+
+clearBestScores();
+if (Array.isArray(data.scores) && data.scores.length === L()){
+for (let c=0;c<L();c++) setScoreCol(c, data.scores[c], true);
+}
+const urgence = coupBDFiltré();
+// ✅ FILTRE TACTIQUE
+if (urgence !== null) {
+markBestScore(urgence);
+statut.textContent = " Coup obligatoire détecté (menace immédiate)";
+// ✅ PAS DE RETURN ICI
+}
+
+if (typeof data.best === "number"){
+markBestScore(data.best);
+statut.textContent = `DB : meilleur coup = colonne ${data.best+1} (coverage=${data.coverage ?? 0})`;
 } else {
-statut.textContent =
-"Analyse disponible, mais position trop peu documentée"
+statut.textContent = `DB : pas assez de données (coverage=${data.coverage ?? 0})`;
 }
 
-} catch (e) {
-console.error(e);
-statut.textContent = "Erreur pendant l'analyse";
+} catch(e){
+console.error("analyse db error:", e);
+statut.textContent = "Analyse DB : erreur → Minimax";
+await robotMinimax(false);
+} finally {
+iaThinkingProgress(100);
+await iaThinkingStop();
 }
 }
 /* ===================== UNDO / SAVE / LOAD ===================== */
@@ -1179,6 +1261,7 @@ function sortirReplay(){
 
   snapshotAvantReplay=null;
   MAJ();
+  afficherPoidsDB(); // ✅ À AJOUTER
 }
 
 /* ===================== PARAMS ===================== */
@@ -1241,6 +1324,7 @@ function rejouerSequence(seqStr){
     appliquerCoup(col0);
   }
   MAJ();
+  afficherPoidsDB(); // ✅ À AJOUTER
 }
 
 async function refreshGamesList(){
@@ -1366,9 +1450,9 @@ function paintApply(row, col){
 
   const guess = estimateNextPlayerFromCounts();
   if (guess) joueurActif = guess;
-  
-  afficherPoidsDB();
+
   MAJ();
+  afficherPoidsDB(); // ✅ À AJOUTER
 }
 
 function clearBoardPaint(){
@@ -1448,7 +1532,8 @@ document.getElementById("depth")?.addEventListener("change", (e)=>{
   sauverIA();
 });
 
-document.getElementById("analyseNow")?.addEventListener("click", analyserSansJouer);
+document.getElementById("analyseNow")
+?.addEventListener("click", conseillerCoupDB);
 
 document.getElementById("aiPlayOnce")?.addEventListener("click", async () => {
 if (fin || enPause || enReplay) return;
@@ -1541,33 +1626,42 @@ return null;
 }
 }
 async function runPrediction() {
-
 showPrediction("Analyse de la position…");
 
 const board = tableau;
 const current = joueurActif;
 
-// 1) Minimax → victoire forcée ?
-const win = await detectWinningDepth(board, current, 6);
+// 1️⃣ Recherche de victoire / défaite forcée (Minimax)
+const forced = await detectWinningLine(board, current, 6);
 
-if (win) {
+if (forced.result === "WIN") {
 showPrediction(
-`${win.winner.toUpperCase()} peut gagner en ${win.depth} coups`,
-win.winner === "rouge" ? "good" : "bad"
+`${forced.winner.toUpperCase()} peut gagner en ~${forced.in} coups`,
+forced.winner === "rouge" ? "good" : "bad"
 );
 return;
 }
-  
-  const adv = await getDbAdvantage();
+
+if (forced.result === "LOSS") {
+showPrediction(
+`${forced.winner.toUpperCase()} peut perdre en ~${forced.in} coups`,
+forced.winner === "rouge" ? "bad" : "good"
+);
+return;
+}
+
+// 2️⃣ Sinon → estimation statistique (DB)
+const adv = await getDbAdvantage();
 
 if (adv === "rouge") {
-showPrediction("Rouge est statistiquement avantagé", "good");
+showPrediction("Rouge est avantagé (statistique)", "good");
 } else if (adv === "jaune") {
-showPrediction("Jaune est statistiquement avantagé", "bad");
+showPrediction("Jaune est avantagé (statistique)", "bad");
 } else {
-showPrediction("Position équilibrée / nulle probable", "neutral");
+showPrediction("Position incertaine / équilibrée", "neutral");
 }
 }
+
 document.getElementById("refreshGames")?.addEventListener("click", refreshGamesList);
 
 document.getElementById("loadBga")?.addEventListener("click", ()=>{
