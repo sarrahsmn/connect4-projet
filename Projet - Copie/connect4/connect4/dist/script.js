@@ -1057,7 +1057,7 @@ body: fd
 }).catch(err => {
 console.warn("Sauvegarde DB échouée", err);
 });
-} 
+}
 
 function reprendre(){
   const txt = localStorage.getItem("p4_save");
