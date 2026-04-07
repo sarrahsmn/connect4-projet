@@ -218,6 +218,39 @@ function setScoreCol(col, value, valid){
   cell.classList.toggle("invalide", !valid);
 }
 
+
+async function afficherPoidsDB() {
+if (fin || enReplay) return;
+
+const seqStr = (historique || []).map(h => h.col + 1).join("");
+const playable = [];
+for (let c = 0; c < L(); c++) {
+playable.push(caseDispo(c) !== -1 ? 1 : 0);
+}
+
+try {
+const url = `${API}/ai/db?seq=${encodeURIComponent(seqStr)}&width=${L()}&height=${H()}&playable=${playable.join(",")}`;
+const res = await fetch(url);
+const data = await res.json();
+
+clearBestScores();
+
+if (Array.isArray(data.scores) && data.scores.length === L()) {
+for (let c = 0; c < L(); c++) {
+setScoreCol(c, data.scores[c], true); // ✅ POIDS VISIBLES
+}
+}
+
+// ✅ mettre en évidence le meilleur coup DB
+if (typeof data.best === "number") {
+markBestScore(data.best);
+}
+
+} catch (e) {
+console.error("Erreur affichage poids DB", e);
+}
+}
+
 function clearBestScores(){
   const S = document.getElementById("scores");
   if (!S) return;
@@ -373,6 +406,7 @@ function appliquerCoup(col){
 
   joueurActif = (joueurActif === "rouge") ? "jaune" : "rouge";
   MAJ();
+  afficherPoidsDB(); // ✅ poids mis à jour automatiquement
   return true;
 }
 
@@ -937,65 +971,50 @@ function robotJoue(){
 async function analyserSansJouer(){
 if (fin || enPause || enReplay) return;
 
-iaThinkingStart();
-
 try {
 
-// === MINIMAX ===
-if (IA.type === "minimax") {
-await robotMinimax(false);
+// ✅ 1. Vérifier s'il existe un coup forcé immédiat
+const urgence = gardeFouTactique();
+
+if (urgence) {
+markBestScore(urgence.col);
+statut.textContent =
+urgence.type === "WIN"
+? "✅ Victoire forcée détectée (coup obligatoire)"
+: "⚠️ Blocage obligatoire détecté (menace immédiate)";
 return;
 }
 
-// === ALÉATOIRE ===
-if (IA.type === "aleatoire") {
-clearBestScores();
-for (let c=0; c<L(); c++) setScoreCol(c, null, false);
-robotAleatoire(false);
-return;
+// ✅ 2. Sinon, expliquer que le meilleur coup vient des poids DB
+const S = document.getElementById("scores");
+let bestCol = null;
+let bestScore = -Infinity;
+
+if (S) {
+for (let c = 0; c < L(); c++) {
+const cell = S.children[c + 1];
+if (!cell) continue;
+
+const v = Number(cell.textContent);
+if (!isNaN(v) && v > bestScore) {
+bestScore = v;
+bestCol = c;
+}
+}
 }
 
-// === DB ===
-iaThinkingProgress(25);
-
-const seqStr = (historique || []).map(h => h.col+1).join('');
-const playable = [];
-for (let c=0;c<L();c++) playable.push(caseDispo(c)!==-1 ? 1 : 0);
-
-const url = `${API}/ai/db?seq=${encodeURIComponent(seqStr)}&width=${L()}&height=${H()}&playable=${playable.join(',')}`;
-const res = await fetch(url);
-
-iaThinkingProgress(70);
-
-const data = await res.json();
-
-clearBestScores();
-if (Array.isArray(data.scores) && data.scores.length === L()){
-for (let c=0;c<L();c++) setScoreCol(c, data.scores[c], true);
-}
-
-// ✅ FILTRE TACTIQUE
-const urgence = coupBDFiltré();
-if (urgence !== null) {
-markBestScore(urgence);
-statut.textContent = "⚠️ Coup vital à jouer (menace immédiate)";
-return;
-}
-
-if (typeof data.best === "number"){
-markBestScore(data.best);
-statut.textContent = `DB : meilleur coup = colonne ${data.best+1} (coverage=${data.coverage ?? 0})`;
+if (bestCol !== null) {
+markBestScore(bestCol);
+statut.textContent =
+`D'après l'analyse statistique, le meilleur coup est la colonne ${bestCol + 1}`;
 } else {
-statut.textContent = `DB : pas assez de données (coverage=${data.coverage ?? 0})`;
+statut.textContent =
+"Analyse disponible, mais position trop peu documentée"
 }
 
-} catch(e){
-console.error("analyse db error:", e);
-statut.textContent = "Analyse DB : erreur → Minimax";
-await robotMinimax(false);
-} finally {
-iaThinkingProgress(100);
-await iaThinkingStop();
+} catch (e) {
+console.error(e);
+statut.textContent = "Erreur pendant l'analyse";
 }
 }
 /* ===================== UNDO / SAVE / LOAD ===================== */
@@ -1347,7 +1366,8 @@ function paintApply(row, col){
 
   const guess = estimateNextPlayerFromCounts();
   if (guess) joueurActif = guess;
-
+  
+  afficherPoidsDB();
   MAJ();
 }
 
