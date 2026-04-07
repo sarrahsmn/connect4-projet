@@ -1021,46 +1021,29 @@ function annuler(){
   MAJ();
 }
 
-function sauvegarder(){
-const save = {
-idPartie,
-config,
-mode,
-tableau,
-joueurActif,
-fin,
-resultat,
-historique,
-lastMove,
-IA,
-humanColor: getHumanColor()
-};
-
-// ✅ Sauvegarde locale
-localStorage.setItem("p4_save", JSON.stringify(save));
-
-// ✅ Sauvegarde backend dédiée
+function sauvegarder() {
 const seq = historique.map(h => h.col + 1).join("");
 
-fetch(`${API}/save-game`, {
+const blob = new Blob([seq], { type: "text/plain" });
+const file = new File([blob], `${seq}.txt`, { type: "text/plain" });
+
+const fd = new FormData();
+fd.append("file", file);
+fd.append("width", String(L()));
+fd.append("height", String(H()));
+fd.append("starts_with", config.commence);
+
+fetch(`${API}/import-file`, {
 method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({
-seq,
-width: L(),
-height: H(),
-starts_with: config.commence,
-source: "frontend"
-})
+body: fd
 })
 .then(r => r.json())
 .then(j => {
-statut.textContent = `✅ Partie enregistrée en base (id ${j.id})`;
+statut.textContent = j.message || "Partie enregistrée en base";
 refreshGamesList();
 })
-.catch(err => {
-console.error(err);
-statut.textContent = "❌ Erreur sauvegarde DB";
+.catch(() => {
+statut.textContent = "Erreur sauvegarde DB";
 });
 }
 
