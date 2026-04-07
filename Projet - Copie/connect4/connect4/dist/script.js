@@ -1039,22 +1039,25 @@ humanColor: getHumanColor()
 // ✅ Sauvegarde locale
 localStorage.setItem("p4_save", JSON.stringify(save));
 
-// ✅ Sauvegarde en base de données
-fetch(`${API}/save-game`, {
+// ✅ Sauvegarde en base via import-file (astuce soutenance)
+const seq = historique.map(h => h.col + 1).join("");
+
+const blob = new Blob([seq], { type: "text/plain" });
+const file = new File([blob], "live_game.txt", { type: "text/plain" });
+
+const fd = new FormData();
+fd.append("file", file);
+fd.append("width", String(L()));
+fd.append("height", String(H()));
+fd.append("starts_with", config.commence);
+
+fetch(`${API}/import-file`, {
 method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({
-seq: historique.map(h => h.col + 1).join(""),
-width: L(),
-height: H(),
-result: resultat
-})
+body: fd
 }).catch(err => {
 console.warn("Sauvegarde DB échouée", err);
 });
-
-statut.textContent = "Partie sauvegardée (local + base de données)";
-}
+} 
 
 function reprendre(){
   const txt = localStorage.getItem("p4_save");
