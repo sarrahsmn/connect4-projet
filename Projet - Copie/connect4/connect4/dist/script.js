@@ -2042,7 +2042,7 @@ async function runPrediction() {
 
   try {
     // 1) On cherche une vraie suite gagnante
-    const redWin = getWinPrediction("rouge", 7);
+    const redWin = getWinPrediction("rouge", 9);
     if (redWin) {
       const coups = depthToHumanMoves(redWin.depth);
 
@@ -2060,7 +2060,7 @@ async function runPrediction() {
       return;
     }
 
-    const yellowWin = getWinPrediction("jaune", 7);
+    const yellowWin = getWinPrediction("jaune", 9);
     if (yellowWin) {
       const coups = depthToHumanMoves(yellowWin.depth);
 
