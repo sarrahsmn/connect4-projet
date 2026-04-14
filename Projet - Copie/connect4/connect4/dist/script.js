@@ -337,15 +337,28 @@ console.error("Erreur conseil DB", e);
 }
 
 async function conseillerCoup() {
-if (fin || enReplay) return;
+  if (fin || enPause || enReplay) return;
 
-clearBestScores();
+  clearBestScores();
+  iaThinkingStart();
 
-if (IA.type === "db") {
-await conseillerCoupDB();
-} else if (IA.type === "minimax") {
-await conseillerCoupMinimax();
-}
+  try {
+    const choix = await choisirCoupIA();
+
+    if (!choix || choix.col == null) {
+      statut.textContent = "Aucun coup conseillé";
+      return;
+    }
+
+    markBestScore(choix.col);
+    statut.textContent = `Conseil IA : colonne ${choix.col + 1} — ${choix.reason}`;
+  } catch (e) {
+    console.error("Erreur conseillerCoup:", e);
+    statut.textContent = "Erreur pendant le conseil";
+  } finally {
+    iaThinkingProgress(100);
+    await iaThinkingStop();
+  }
 }
 
 async function conseillerCoupMinimax() {
@@ -791,38 +804,30 @@ return res;
 
 
 async function jouerCoupIAGaranti() {
+  if (fin || enPause || enReplay) return;
 
-// 🛑 priorité absolue : garde-fou
-const urgence = gardeFouTactique();
-if (urgence) {
-clearBestScores();
-markBestScore(urgence.col);
+  iaThinkingStart();
 
-statut.textContent =
-urgence.type === "WIN"
-? "✅ Coup gagnant immédiat"
-: "⚠️ Blocage obligatoire (menace immédiate)";
+  try {
+    const choix = await choisirCoupIA();
 
-appliquerCoup(urgence.col);
-return;
-}
+    if (!choix || choix.col == null) {
+      statut.textContent = "Aucun coup possible";
+      return;
+    }
 
-// ✅ pas d'urgence → coups sûrs
-const t0 = cloneTableau(tableau);
-const surs = coupsSurs(t0, joueurActif);
+    clearBestScores();
+    markBestScore(choix.col);
+    statut.textContent = choix.reason;
 
-if (!surs.length) {
-statut.textContent = "⚠️ Aucun coup sûr (position critique)";
-}
-
-// 🔽 stratégie normale ensuite
-if (IA.type === "db") {
-await robotDb();
-} else if (IA.type === "minimax") {
-await robotMinimax(true);
-} else {
-robotAleatoire(true);
-}
+    appliquerCoup(choix.col);
+  } catch (e) {
+    console.error("Erreur jouerCoupIAGaranti:", e);
+    statut.textContent = "Erreur IA";
+  } finally {
+    iaThinkingProgress(100);
+    await iaThinkingStop();
+  }
 }
 
 /* ===================== IA ALÉATOIRE ===================== */
@@ -1279,6 +1284,152 @@ function getWinPrediction(player, maxDepth = 3){
   }
 
   return null;
+}
+
+async function choisirCoupIA() {
+  if (fin || enPause || enReplay) return null;
+
+  // 1. Garde-fou absolu
+  const urgence = gardeFouTactique();
+  if (urgence) {
+    return {
+      col: urgence.col,
+      reason: urgence.type === "WIN"
+        ? "Coup gagnant immédiat"
+        : "Blocage obligatoire"
+    };
+  }
+
+  // 2. Selon le type d'IA
+  if (IA.type === "db") {
+    const seqStr = historique.map(h => h.col + 1).join("");
+    const playable = [];
+    for (let c = 0; c < L(); c++) {
+      playable.push(caseDispo(c) !== -1 ? 1 : 0);
+    }
+
+    try {
+      const url =
+        `${API}/ai/db?seq=${encodeURIComponent(seqStr)}` +
+        `&width=${L()}&height=${H()}` +
+        `&playable=${playable.join(",")}`;
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      let col = (typeof data.best === "number") ? data.best : null;
+
+      // 2.a filtre coups sûrs
+      const t0 = cloneTableau(tableau);
+      const safe = coupsSurs(t0, joueurActif);
+
+      if (safe.length && (col == null || !safe.includes(col))) {
+        // si la DB propose un coup dangereux, on corrige
+        col = safe[0];
+      }
+
+      // 2.b fallback si DB trop faible
+      if (col == null || (data.coverage ?? 0) < 2) {
+        return await choisirCoupMinimaxInterne();
+      }
+
+      return {
+        col,
+        reason: `Choix DB (coverage=${data.coverage ?? 0})`
+      };
+
+    } catch (e) {
+      console.error("choisirCoupIA DB error:", e);
+      return await choisirCoupMinimaxInterne();
+    }
+  }
+
+  if (IA.type === "minimax") {
+    return await choisirCoupMinimaxInterne();
+  }
+
+  // aléatoire
+  const jouables = [];
+  for (let c = 0; c < L(); c++) {
+    if (caseDispo(c) !== -1) jouables.push(c);
+  }
+
+  if (!jouables.length) return null;
+
+  return {
+    col: jouables[(Math.random() * jouables.length) | 0],
+    reason: "Choix aléatoire"
+  };
+}
+
+async function choisirCoupMinimaxInterne() {
+  const maxP = joueurActif;
+  const t0 = cloneTableau(tableau);
+
+  // Win immédiate
+  const winningNow = findImmediateWin(t0, maxP);
+  if (winningNow != null) {
+    return {
+      col: winningNow,
+      reason: "Coup gagnant immédiat"
+    };
+  }
+
+  // Blocage
+  const opp = (maxP === "rouge") ? "jaune" : "rouge";
+  const oppWinCol = findImmediateWin(t0, opp);
+  if (oppWinCol != null) {
+    return {
+      col: oppWinCol,
+      reason: "Blocage obligatoire"
+    };
+  }
+
+  // Coups sûrs
+  const safeMoves = [];
+  for (let c = 0; c < L(); c++) {
+    const r = caseDispoSur(t0, c);
+    if (r !== -1 && !moveAllowsOppImmediateWin(t0, c, maxP)) {
+      safeMoves.push(c);
+    }
+  }
+
+  const candidateMoves = safeMoves.length ? safeMoves : coupsPossibles(t0);
+
+  const totalEmpty = t0.flat().filter(x => x === null).length;
+  const depth = Math.min(8, IA.depth + (totalEmpty <= 16 ? 1 : 0));
+
+  let bestCol = null;
+  let bestScore = -Infinity;
+
+  for (let i = 0; i < candidateMoves.length; i++) {
+    const col = candidateMoves[i];
+    const r = caseDispoSur(t0, col);
+    if (r === -1) continue;
+
+    t0[r][col] = maxP;
+    const val = await minimaxAsync(
+      t0,
+      depth - 1,
+      false,
+      maxP,
+      -Infinity,
+      Infinity
+    );
+    t0[r][col] = null;
+
+    if (val > bestScore) {
+      bestScore = val;
+      bestCol = col;
+    }
+  }
+
+  if (bestCol == null) return null;
+
+  return {
+    col: bestCol,
+    reason: `Choix Minimax (profondeur ${depth})`
+  };
 }
 /* ===================== IA SUGGÈRE (sans jouer) ===================== */
 async function analyserSansJouer(){
@@ -1924,4 +2075,3 @@ document.getElementById("predictBtn")
 /* ===================== START ===================== */
 main(true);
 refreshGamesList();
-
