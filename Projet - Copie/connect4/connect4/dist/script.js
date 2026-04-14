@@ -1186,10 +1186,13 @@ async function robotDbSafe() {
     }
 
     // 🔵 4. fallback si DB faible
-    if (col == null || data.coverage < 2) {
+    if (col == null) {
       statut.textContent = "DB faible → Minimax";
       return robotMinimax(true);
     }
+    if ((data.coverage ?? 0) < 2) {
+  statut.textContent = "DB utilisée malgré faible couverture";
+}
 
     clearBestScores();
     markBestScore(col);
