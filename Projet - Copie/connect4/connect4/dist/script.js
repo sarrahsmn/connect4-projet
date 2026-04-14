@@ -1847,6 +1847,8 @@ function paintApply(row, col){
 
   MAJ();
   afficherPoids(); // ✅ À AJOUTER
+  syncHistoryFromBoard();
+  runPrediction();
 }
 
 function clearBoardPaint(){
@@ -2040,7 +2042,7 @@ async function runPrediction() {
 
   try {
     // 1) On cherche une vraie suite gagnante
-    const redWin = getWinPrediction("rouge", 5);
+    const redWin = getWinPrediction("rouge", 7);
     if (redWin) {
       const coups = depthToHumanMoves(redWin.depth);
 
@@ -2058,7 +2060,7 @@ async function runPrediction() {
       return;
     }
 
-    const yellowWin = getWinPrediction("jaune", 5);
+    const yellowWin = getWinPrediction("jaune", 7);
     if (yellowWin) {
       const coups = depthToHumanMoves(yellowWin.depth);
 
