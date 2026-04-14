@@ -1764,7 +1764,7 @@ document.getElementById("depth")?.addEventListener("change", (e)=>{
 });
 
 document.getElementById("analyseNow")
-?.addEventListener("click", runPrediction);
+?.addEventListener("click", conseillerCoup);
 
 document.getElementById("aiPlayOnce")?.addEventListener("click", async () => {
 if (fin || enPause || enReplay) return;
