@@ -257,8 +257,7 @@ setScoreCol(c, data.scores[c], true);
 }
 }
 
-// ❌ PAS de clearBestScores
-// ❌ PAS de markBestScore ici
+
 
 } catch (e) {
 console.error("Erreur affichage poids DB", e);
@@ -545,7 +544,7 @@ MAJ();
 
 // ✅ poids DB ou Minimax selon le paramètre IA
 afficherPoids();
-
+runPrediction();
 return true;
 }
 
@@ -1145,6 +1144,18 @@ function colToText(col){
 function sequenceToText(seq){
   return seq.map(c => c + 1).join(" → ");
 }
+function depthToHumanMoves(depth) {
+  return Math.ceil(depth / 2);
+}
+
+
+function getPredictionDepth() {
+  const nbVides = tableau.flat().filter(x => x === null).length;
+
+  if (nbVides > 50) return 3;   // début
+  if (nbVides > 25) return 5;   // milieu
+  return 7;                     // fin
+}
 async function robotDbSafe() {
 
   if (fin || enPause || enReplay) return;
@@ -1568,6 +1579,7 @@ function reprendre(){
 
   MAJ();
   statut.textContent="Partie reprise.";
+  runPrediction();
 }
 
 /* ===================== REPLAY ===================== */
@@ -2008,42 +2020,105 @@ return null;
 }
 }
 async function runPrediction() {
-  showPrediction("Analyse de la position…");
+  showPrediction("Analyse de la position…", "neutral");
 
-  const board = cloneTableau(tableau);
-  const current = joueurActif;
-
-  // 1) Recherche tactique
-  const forced = await detectWinningLine(board, current, 4);
-
-  if (forced.result === "WIN") {
-    showPrediction(
-      `${labelCouleur(forced.winner)} peut gagner en ~${forced.in} coup(s)`,
-      forced.winner === "rouge" ? "good" : "bad"
-    );
-    return;
+  // Partie déjà finie
+  if (fin) {
+    if (resultat === "rouge") {
+      showPrediction("Victoire rouge", "good");
+      return;
+    }
+    if (resultat === "jaune") {
+      showPrediction("Victoire jaune", "bad");
+      return;
+    }
+    if (resultat === "nul") {
+      showPrediction("Match nul", "neutral");
+      return;
+    }
   }
 
-  if (forced.result === "LOSS") {
-    const other = forced.winner;
-    showPrediction(
-      `${labelCouleur(other)} peut gagner en ~${forced.in} coup(s)`,
-      other === "rouge" ? "good" : "bad"
-    );
-    return;
-  }
+  try {
+    // 1) On cherche une vraie suite gagnante
+    const redWin = getWinPrediction("rouge", 5);
+    if (redWin) {
+      const coups = depthToHumanMoves(redWin.depth);
 
-  // 2) Sinon estimation statistique DB
-  const adv = await getDbAdvantage();
+      if (redWin.sequence.length === 1) {
+        showPrediction(
+          `Rouge peut gagner immédiatement : colonne ${redWin.sequence[0] + 1}`,
+          "good"
+        );
+      } else {
+        showPrediction(
+          `Rouge peut gagner en ${coups} coup(s) — suite : ${sequenceToText(redWin.sequence)}`,
+          "good"
+        );
+      }
+      return;
+    }
 
-  if (adv === "rouge") {
-    showPrediction("Rouge est avantagé (statistique)", "good");
-  } else if (adv === "jaune") {
-    showPrediction("Jaune est avantagé (statistique)", "bad");
-  } else {
-    showPrediction("Position incertaine ou équilibrée", "neutral");
+    const yellowWin = getWinPrediction("jaune", 5);
+    if (yellowWin) {
+      const coups = depthToHumanMoves(yellowWin.depth);
+
+      if (yellowWin.sequence.length === 1) {
+        showPrediction(
+          `Jaune peut gagner immédiatement : colonne ${yellowWin.sequence[0] + 1}`,
+          "bad"
+        );
+      } else {
+        showPrediction(
+          `Jaune peut gagner en ${coups} coup(s) — suite : ${sequenceToText(yellowWin.sequence)}`,
+          "bad"
+        );
+      }
+      return;
+    }
+
+    // 2) Si pas de suite gagnante trouvée, on garde ta logique actuelle
+    const board = cloneTableau(tableau);
+    const current = joueurActif;
+    const forced = await detectWinningLine(board, current, 4);
+
+    if (forced.result === "WIN") {
+      showPrediction(
+        `${labelCouleur(forced.winner)} a une victoire imminente`,
+        forced.winner === "rouge" ? "good" : "bad"
+      );
+      return;
+    }
+
+    if (forced.result === "LOSS") {
+      const other = forced.winner;
+      showPrediction(
+        `Attention : ${labelCouleur(other)} menace de gagner`,
+        other === "rouge" ? "good" : "bad"
+      );
+      return;
+    }
+
+    // 3) Fallback statistique
+    const adv = await getDbAdvantage();
+
+    if (adv === "rouge") {
+      showPrediction("Rouge est avantagé (statistique)", "good");
+    } else if (adv === "jaune") {
+      showPrediction("Jaune est avantagé (statistique)", "bad");
+    } else {
+      showPrediction("Position incertaine ou équilibrée", "neutral");
+    }
+  } catch (e) {
+    console.error("runPrediction error:", e);
+    showPrediction("Analyse indisponible", "neutral");
   }
 }
+
+
+document.getElementById("analyseNow")
+?.addEventListener("click", runPrediction);
+
+ 
 
 document.getElementById("refreshGames")?.addEventListener("click", refreshGamesList);
 
