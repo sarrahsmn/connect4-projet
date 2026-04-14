@@ -2024,98 +2024,91 @@ return null;
 async function runPrediction() {
   showPrediction("Analyse de la position…", "neutral");
 
-  // Partie déjà finie
-  if (fin) {
-    if (resultat === "rouge") {
-      showPrediction("Victoire rouge", "good");
-      return;
-    }
-    if (resultat === "jaune") {
-      showPrediction("Victoire jaune", "bad");
-      return;
-    }
-    if (resultat === "nul") {
-      showPrediction("Match nul", "neutral");
-      return;
-    }
-  }
-
   try {
-    // 1) On cherche une vraie suite gagnante
-    const redWin = getWinPrediction("rouge", 9);
+    // 0) Partie déjà finie
+    if (fin) {
+      if (resultat === "rouge") {
+        showPrediction("Victoire rouge", "good");
+        return;
+      }
+      if (resultat === "jaune") {
+        showPrediction("Victoire jaune", "bad");
+        return;
+      }
+      if (resultat === "nul") {
+        showPrediction("Match nul", "neutral");
+        return;
+      }
+    }
+
+    // 1) Menaces immédiates
+    const t0 = cloneTableau(tableau);
+
+    const rougeNow = findImmediateWin(t0, "rouge");
+    const jauneNow = findImmediateWin(t0, "jaune");
+
+    if (rougeNow != null && jauneNow != null) {
+      showPrediction(
+        `Position critique : Rouge menace colonne ${rougeNow + 1}, Jaune menace colonne ${jauneNow + 1}`,
+        "neutral"
+      );
+      return;
+    }
+
+    if (rougeNow != null) {
+      showPrediction(`Rouge a une menace immédiate : colonne ${rougeNow + 1}`, "good");
+      return;
+    }
+
+    if (jauneNow != null) {
+      showPrediction(`Jaune a une menace immédiate : colonne ${jauneNow + 1}`, "bad");
+      return;
+    }
+
+    // 2) Suites gagnantes courtes
+    const redWin = getWinPrediction("rouge", 7);
     if (redWin) {
-      const coups = depthToHumanMoves(redWin.depth);
-
-      if (redWin.sequence.length === 1) {
+      const coups = Math.ceil(redWin.depth / 2);
+      if (redWin.sequence.length > 0) {
         showPrediction(
-          `Rouge peut gagner immédiatement : colonne ${redWin.sequence[0] + 1}`,
+          `Rouge peut forcer la victoire en ${coups} coup(s) — suite : ${sequenceToText(redWin.sequence)}`,
           "good"
         );
       } else {
-        showPrediction(
-          `Rouge peut gagner en ${coups} coup(s) — suite : ${sequenceToText(redWin.sequence)}`,
-          "good"
-        );
+        showPrediction("Rouge a une position gagnante", "good");
       }
       return;
     }
 
-    const yellowWin = getWinPrediction("jaune", 9);
+    const yellowWin = getWinPrediction("jaune", 7);
     if (yellowWin) {
-      const coups = depthToHumanMoves(yellowWin.depth);
-
-      if (yellowWin.sequence.length === 1) {
+      const coups = Math.ceil(yellowWin.depth / 2);
+      if (yellowWin.sequence.length > 0) {
         showPrediction(
-          `Jaune peut gagner immédiatement : colonne ${yellowWin.sequence[0] + 1}`,
+          `Jaune peut forcer la victoire en ${coups} coup(s) — suite : ${sequenceToText(yellowWin.sequence)}`,
           "bad"
         );
       } else {
-        showPrediction(
-          `Jaune peut gagner en ${coups} coup(s) — suite : ${sequenceToText(yellowWin.sequence)}`,
-          "bad"
-        );
+        showPrediction("Jaune a une position gagnante", "bad");
       }
       return;
     }
 
-    // 2) Si pas de suite gagnante trouvée, on garde ta logique actuelle
-    const board = cloneTableau(tableau);
-    const current = joueurActif;
-    const forced = await detectWinningLine(board, current, 4);
-
-    if (forced.result === "WIN") {
-      showPrediction(
-        `${labelCouleur(forced.winner)} a une victoire imminente`,
-        forced.winner === "rouge" ? "good" : "bad"
-      );
+    // 3) Nul probable
+    const nbVides = tableau.flat().filter(x => x === null).length;
+    if (nbVides <= 6) {
+      showPrediction("Nul probable", "neutral");
       return;
     }
 
-    if (forced.result === "LOSS") {
-      const other = forced.winner;
-      showPrediction(
-        `Attention : ${labelCouleur(other)} menace de gagner`,
-        other === "rouge" ? "good" : "bad"
-      );
-      return;
-    }
+    // 4) Fallback prudent
+    showPrediction("Position incertaine ou équilibrée", "neutral");
 
-    // 3) Fallback statistique
-    const adv = await getDbAdvantage();
-
-    if (adv === "rouge") {
-      showPrediction("Rouge est avantagé (statistique)", "good");
-    } else if (adv === "jaune") {
-      showPrediction("Jaune est avantagé (statistique)", "bad");
-    } else {
-      showPrediction("Position incertaine ou équilibrée", "neutral");
-    }
   } catch (e) {
     console.error("runPrediction error:", e);
     showPrediction("Analyse indisponible", "neutral");
   }
 }
-
 
 document.getElementById("analyseNow")
 ?.addEventListener("click", runPrediction);
