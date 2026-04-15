@@ -1450,7 +1450,7 @@ async function analyserSansJouer(){
   await new Promise(r => setTimeout(r, 50));
 
   // 1) Vérification tactique Rouge
-  const redWin = getWinPrediction("rouge", 7);
+  const redWin = getWinPrediction("rouge", 9);
   if (redWin){
     const txt = redWin.sequence.length
       ? `Analyse : Rouge peut gagner en ${redWin.depth} coup(s) — suite : ${sequenceToText(redWin.sequence)}`
@@ -1462,7 +1462,7 @@ async function analyserSansJouer(){
   }
 
   // 2) Vérification tactique Jaune
-  const yellowWin = getWinPrediction("jaune", 7);
+  const yellowWin = getWinPrediction("jaune", 9);
   if (yellowWin){
     const txt = yellowWin.sequence.length
       ? `Analyse : Jaune peut gagner en ${yellowWin.depth} coup(s) — suite : ${sequenceToText(yellowWin.sequence)}`
