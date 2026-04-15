@@ -1284,7 +1284,7 @@ function findForcedWinSequence(board, player, currentPlayer, depth){
  * Cherche un gain forcé pour un joueur jusqu'à maxDepth
  * Retourne { depth, sequence } ou null
  */
-function getWinPrediction(player, maxDepth = 3){
+function getWinPrediction(player, maxDepth = 7){
   const board = cloneTableau(tableau);
 
   for (let d = 1; d <= maxDepth; d++){
